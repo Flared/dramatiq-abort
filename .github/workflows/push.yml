@@ -10,6 +10,11 @@ jobs:
       max-parallel: 4
       matrix:
         python-version: [3.5, 3.6, 3.7, 3.8]
+    services:
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
 
     steps:
     - uses: actions/checkout@v1
