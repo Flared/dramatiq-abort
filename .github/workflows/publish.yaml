@@ -1,8 +1,6 @@
 name: Publish
 
 on:
-  # Make sure packaging process is not broken
-  push:
   # Make a package for release
   release:
     types: [published]
