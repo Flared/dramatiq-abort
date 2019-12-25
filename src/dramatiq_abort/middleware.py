@@ -124,7 +124,6 @@ class Abortable(Middleware):
     def _watcher(self) -> None:
         while True:
             try:
-                print("_handle")
                 self._handle()
             except Exception:  # pragma: no cover
                 self.logger.exception(
