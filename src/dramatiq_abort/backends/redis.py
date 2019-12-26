@@ -6,17 +6,12 @@ from ..backend import EventBackend
 
 
 class RedisBackend(EventBackend):
-    """A event backend for Redis_.
+    """An event backend for Redis_.
 
-    Parameters:
-      client(Redis): An optional client.  If this is passed,
-        then all other parameters are ignored.
-      url(str): An optional connection URL.  If both a URL and
-        connection paramters are provided, the URL is used.
-      **parameters(dict): Connection parameters are passed directly
-        to :class:`redis.Redis`.
+    :param client: The `Redis client`_ instance.
 
     .. _redis: https://redis.io
+    .. _`redis client`: https://pypi.org/project/redis/
     """
 
     def __init__(self, *, client: Any) -> None:
@@ -24,6 +19,10 @@ class RedisBackend(EventBackend):
 
     @classmethod
     def from_url(cls, url: str) -> "RedisBackend":
+        """Initialize the backend using an URL to the Redis server.
+
+        :param url: Redis server URL.
+        """
         return cls(
             client=redis.StrictRedis(connection_pool=redis.ConnectionPool.from_url(url))
         )

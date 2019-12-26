@@ -29,15 +29,21 @@ class Abortable(Middleware):
     termination.
     Currently, this is only available on CPython.
 
-    Note:
-      This works by setting an async exception in the worker thread
-      that runs the actor.  This means that the exception will only get
-      called the next time that thread acquires the GIL.  Concretely,
-      this means that this middleware can't cancel system calls.
+    This middleware also adds an ``abortable`` option that can be set on
+    dramatiq ``actor`` and ``send_with_options``. Value priority is respectively
+    ``send_with_options``, ``actor`` and this ``Abortable``.
 
-    Parameters:
-      abortable(bool): When true, the actor will be interrupted
-        if the task was aborted.
+    Note: This works by setting an async exception in the worker thread
+    that runs the actor.  This means that the exception will only get
+    called the next time that thread acquires the GIL. Concretely,
+    this means that this middleware can't cancel system calls.
+
+    :param backend: Event backend used to signal termination from a broker to
+        the workers. See :any:`RedisBackend`.
+    :type backend: :class:`EventBackend`
+
+    :param abortable: Set the default value for every actor ``abortable``
+        option.
     """
 
     def __init__(self, *, backend: EventBackend, abortable: bool = True):
@@ -140,6 +146,18 @@ class Abortable(Middleware):
 
 
 def abort(message_id: str, middleware: Optional[Abortable] = None) -> None:
+    """Abort a pending or running message given its ``message_id``.
+
+    :param message_id: Message to abort. Use the return value of ``actor.send``
+        or ``actor.send_with_options`` to then use its ``.message_id`` attribute.
+
+    :param middleware: :class:`Abortable` middleware used by the workers and
+        broker used to signal termination. If set to ``None``, use the default broker
+        from ``dramatiq.get_broker()`` and retrieve the configured :class:`Abortable`
+        middleware. If no :class:`Abortable` middleware is set on the broker and
+        ``middleware`` is ``None``, raises a :class:`RuntimeError`.
+    :type middleware: :class:`Abortable`
+    """
     if not middleware:
         broker = get_broker()
         for middleware in broker.middleware:

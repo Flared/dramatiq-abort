@@ -35,4 +35,11 @@ jobs:
       with:
         user: __token__
         password: ${{ secrets.pypi_password }}
-
+    - name: Build and Deploy Docs
+      uses: JacksonMaxfield/github-pages-deploy-action-python@master
+      env:
+        ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        BASE_BRANCH: master
+        BRANCH: gh-pages
+        FOLDER: docs/build/html
+        BUILD_SCRIPT: pip install .[dev] && make -C docs && touch docs/build/html/.nojekyll

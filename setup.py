@@ -50,18 +50,20 @@ extra_dependencies = {
 
 extra_dependencies["all"] = list(set(sum(extra_dependencies.values(), [])))
 extra_dependencies["dev"] = extra_dependencies["all"] + [
-    # Tools
-    "black",
     # Linting
     "flake8",
     "flake8-bugbear",
     "flake8-quotes",
     "isort",
     "mypy",
+    "black",
     # Testing
     "pytest",
     "pytest-cov",
     "tox",
+    # Docs
+    "sphinx",
+    "sphinx-autodoc-typehints",
 ]
 
 setup(
