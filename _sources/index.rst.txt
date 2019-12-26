@@ -82,4 +82,4 @@ API
    :members: from_url
 
 .. _dramatiq: https://dramatiq.io
-.. _GitHub: https://github.com/Flared/dramatiq_abort
+.. _GitHub: https://github.com/Flared/dramatiq-abort
