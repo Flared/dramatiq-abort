@@ -39,7 +39,7 @@ jobs:
       run: pip install .[dev] && make -C docs && touch docs/build/html/.nojekyll
     - name: Deploy Docs
       uses: JamesIves/github-pages-deploy-action@releases/v3
-      env:
+      with:
         ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
         BRANCH: gh-pages
         FOLDER: docs/build/html
