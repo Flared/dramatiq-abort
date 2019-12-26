@@ -5,7 +5,7 @@ Add the aborting feature to [dramatiq] through a simple middleware with flexible
 Current version support aborting using the [Redis] store.
 
 [![Build Status](https://github.com/Flared/dramatiq-abort/workflows/Push/badge.svg)](https://github.com/Flared/dramatiq-abort/actions?query=workflow%3A%22Push%22)
-[![PyPI version](https://badge.fury.io/py/dramatiq.svg)](https://badge.fury.io/py/dramatiq-abort)
+[![PyPI version](https://badge.fury.io/py/dramatiq-abort.svg)](https://badge.fury.io/py/dramatiq-abort)
 [![Documentation](https://img.shields.io/badge/doc-latest-brightgreen.svg)](http://flared.github.io/dramatiq-abort)
 
 ## Installation
