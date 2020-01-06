@@ -57,7 +57,7 @@ html_static_path = []
 
 html_theme_options = {
     "github_user": "Flared",
-    "github_repo": "dramatiq_abort",
+    "github_repo": "dramatiq-abort",
 }
 
 
