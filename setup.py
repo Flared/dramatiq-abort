@@ -74,7 +74,7 @@ setup(
     description="Dramatiq middleware to abort tasks.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/flared/dramatiq_abort",
+    url="https://github.com/flared/dramatiq-abort",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     include_package_data=True,
