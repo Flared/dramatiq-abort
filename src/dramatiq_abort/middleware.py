@@ -105,7 +105,7 @@ class Abortable(Middleware):
         self.backend.notify(self.id_to_key(message_id), ttl=self.abort_ttl)
 
     def _handle(self) -> None:
-        message_ids = self.abortables.keys()
+        message_ids = list(self.abortables.keys())
         if not message_ids:
             time.sleep(self.wait_timeout / 1000)
             return
