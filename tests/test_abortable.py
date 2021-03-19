@@ -12,9 +12,10 @@ not_supported = threading.current_platform not in threading.supported_platforms
 
 @pytest.mark.skipif(not_supported, reason="Threading not supported on this platform.")
 def test_abort_notifications_are_received(
-    stub_broker: dramatiq.Broker,
-    stub_worker: dramatiq.Worker,
-    event_backend: EventBackend,
+        stub_broker: dramatiq.Broker,
+        stub_worker: dramatiq.Worker,
+        event_backend: EventBackend,
+        mode
 ) -> None:
     # Given that I have a database
     aborts, successes = [], []
@@ -38,19 +39,33 @@ def test_abort_notifications_are_received(
     # If I send it a message
     message = do_work.send()
 
-    # Then wait and signal the task to terminate
-    time.sleep(0.1)
-    abort(message.message_id)
+    if mode == 'abort':
+        # Then wait and signal the task to terminate
+        time.sleep(0.1)
+        abort(message.message_id, mode=mode)
 
-    # Then join on the queue
-    stub_broker.join(do_work.queue_name)
-    stub_worker.join()
+        # Then join on the queue
+        stub_broker.join(do_work.queue_name)
+        stub_worker.join()
+        assert aborts
+        assert not successes
+    elif mode == 'cancel':
+        time.sleep(0.1)
+        abort(message.message_id, mode=mode)
+
+        # Then join on the queue
+        stub_broker.join(do_work.queue_name)
+        stub_worker.join()
+
+        # Task will finished
+        assert successes
+        assert not aborts
 
 
 def test_not_abortable(
-    stub_broker: dramatiq.Broker,
-    stub_worker: dramatiq.Worker,
-    stub_event_backend: EventBackend,
+        stub_broker: dramatiq.Broker,
+        stub_worker: dramatiq.Worker,
+        stub_event_backend: EventBackend,
 ) -> None:
     aborts, successes = [], []
     abortable = Abortable(backend=stub_event_backend)
@@ -85,8 +100,8 @@ def test_not_abortable(
 
 
 def test_abort_before_processing(
-    stub_broker: dramatiq.Broker, stub_event_backend: EventBackend
-) -> None:
+        stub_broker: dramatiq.Broker, stub_event_backend: EventBackend
+        , mode) -> None:
     calls = []
     abortable = Abortable(backend=stub_event_backend)
     stub_broker.add_middleware(abortable)
@@ -100,7 +115,7 @@ def test_abort_before_processing(
     # If I send it a message
     message = do_work.send()
     # And abort right after.
-    abort(message.message_id)
+    abort(message.message_id, mode=mode)
 
     # Then start the worker.
     worker = dramatiq.Worker(stub_broker, worker_timeout=100, worker_threads=1)
@@ -138,11 +153,11 @@ def test_abort_before_processing(
     ],
 )
 def test_abortable_configs(
-    stub_event_backend: EventBackend,
-    middleware_abortable: bool,
-    actor_abortable: Optional[bool],
-    message_abortable: Optional[bool],
-    is_abortable: bool,
+        stub_event_backend: EventBackend,
+        middleware_abortable: bool,
+        actor_abortable: Optional[bool],
+        message_abortable: Optional[bool],
+        is_abortable: bool,
 ) -> None:
     abortable = Abortable(backend=stub_event_backend, abortable=middleware_abortable)
 
@@ -162,9 +177,9 @@ def test_abortable_configs(
 
 
 def test_abort_polling(
-    stub_broker: dramatiq.Broker,
-    stub_worker: dramatiq.Worker,
-    stub_event_backend: EventBackend,
+        stub_broker: dramatiq.Broker,
+        stub_worker: dramatiq.Worker,
+        stub_event_backend: EventBackend,
 ) -> None:
     sentinel = []
     abortable = Abortable(backend=stub_event_backend)
@@ -198,7 +213,7 @@ def test_abort_polling(
 
 
 def test_abort_with_no_middleware(
-    stub_broker: dramatiq.Broker, stub_worker: dramatiq.Worker
+        stub_broker: dramatiq.Broker, stub_worker: dramatiq.Worker
 ) -> None:
     try:
         abort("foo")

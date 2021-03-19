@@ -61,8 +61,8 @@ def stub_event_backend() -> evt_backends.StubBackend:
 
 @pytest.fixture
 def event_backends(
-    redis_event_backend: evt_backends.RedisBackend,
-    stub_event_backend: evt_backends.StubBackend,
+        redis_event_backend: evt_backends.RedisBackend,
+        stub_event_backend: evt_backends.StubBackend,
 ) -> Dict[str, EventBackend]:
     return {
         "redis": redis_event_backend,
@@ -72,6 +72,11 @@ def event_backends(
 
 @pytest.fixture(params=["redis", "stub"])
 def event_backend(
-    request: Any, event_backends: Dict[str, EventBackend]
+        request: Any, event_backends: Dict[str, EventBackend]
 ) -> EventBackend:
     return event_backends[request.param]
+
+
+@pytest.fixture(params=["cancel", "abort"])
+def mode(request: Any, ):
+    return request.param

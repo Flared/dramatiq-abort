@@ -32,5 +32,10 @@ class StubBackend(EventBackend):
             self.events.add(key)
             self.condition.notify_all()
 
+    def notify_many(self, keys: List[bytes], ttl: int) -> None:
+        with self.condition:
+            self.events.update(keys)
+            self.condition.notify_all()
+
     def _anyset(self, keys: List[bytes]) -> bool:
         return any(k in self.events for k in keys)

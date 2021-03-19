@@ -7,9 +7,7 @@ class EventBackend(abc.ABC):
     """
 
     @abc.abstractmethod
-    def wait_many(
-        self, keys: List[bytes], timeout: int
-    ) -> Optional[bytes]:  # pragma: no cover
+    def wait_many(self, keys: List[bytes], timeout: int) -> Optional[bytes]:  # pragma: no cover
         """Wait for either one of the event in ``keys`` to be signaled or
         ``timeout`` milliseconds to elapsed.
 
@@ -44,6 +42,18 @@ class EventBackend(abc.ABC):
         result in a positive result.
 
         :param key: Event to signal.
+        :param ttl: Time for the signal to live. The value should be large
+            enough to give time for workers to poll the value, but small enough
+            that the backend doesn't end up with too many outdated keys not
+            being garbage collected.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def notify_many(self, keys: List[bytes], ttl: int) -> None:  # pragma: no cover
+        """Signal multi event once.
+
+        :param keys: Events to signal.
         :param ttl: Time for the signal to live. The value should be large
             enough to give time for workers to poll the value, but small enough
             that the backend doesn't end up with too many outdated keys not
