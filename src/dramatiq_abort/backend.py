@@ -3,8 +3,7 @@ from typing import List, Optional
 
 
 class EventBackend(abc.ABC):
-    """ABC for event backends.
-    """
+    """ABC for event backends."""
 
     @abc.abstractmethod
     def wait_many(
