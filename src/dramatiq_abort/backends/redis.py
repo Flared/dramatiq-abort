@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Tuple
 
 import redis
 
@@ -29,7 +29,9 @@ class RedisBackend(EventBackend):
 
     def wait_many(self, keys: List[bytes], timeout: int) -> Optional[bytes]:
         assert timeout is None or timeout >= 1000, "wait timeouts must be >= 1000"
-        event = self.client.blpop(keys, (timeout or 0) // 1000)
+        event: Optional[Tuple[bytes, bytes]] = self.client.blpop(
+            keys, (timeout or 0) // 1000
+        )
         if event is None:
             return None
         key, value = event
@@ -38,7 +40,7 @@ class RedisBackend(EventBackend):
         return key
 
     def poll(self, key: bytes) -> bool:
-        event = self.client.lpop(key)
+        event: Optional[bytes] = self.client.lpop(key)
         return event == b"x"
 
     def notify(self, key: bytes, ttl: int) -> None:
