@@ -21,7 +21,7 @@ random.seed(1337)
 CI: bool = os.getenv("GITHUB_ACTION") is not None
 
 
-def check_redis(client: redis.StrictRedis) -> None:
+def check_redis(client: Any) -> None:
     try:
         client.ping()
     except redis.ConnectionError as e:
