@@ -49,3 +49,10 @@ class RedisBackend(EventBackend):
                 pipe.rpush(key, b"x")
                 pipe.pexpire(key, ttl)
             pipe.execute()
+
+    def notify_many(self, keys: List[bytes], ttl: int) -> None:
+        with self.client.pipeline() as pipe:
+            for key in keys:
+                pipe.rpush(key, b"x")
+                pipe.pexpire(key, ttl)
+            pipe.execute()
