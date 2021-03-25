@@ -6,7 +6,9 @@ class EventBackend(abc.ABC):
     """ABC for event backends."""
 
     @abc.abstractmethod
-    def wait_many(self, keys: List[bytes], timeout: int) -> Optional[bytes]:  # pragma: no cover
+    def wait_many(
+        self, keys: List[bytes], timeout: int
+    ) -> Optional[bytes]:  # pragma: no cover
         """Wait for either one of the event in ``keys`` to be signaled or
         ``timeout`` milliseconds to elapsed.
 
