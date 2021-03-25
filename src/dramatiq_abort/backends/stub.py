@@ -1,5 +1,5 @@
 from threading import Condition
-from typing import List, Optional, Set
+from typing import Iterable, List, Optional, Set
 
 from ..backend import EventBackend
 
@@ -27,12 +27,7 @@ class StubBackend(EventBackend):
                 return True
         return False
 
-    def notify(self, key: bytes, ttl: int) -> None:
-        with self.condition:
-            self.events.add(key)
-            self.condition.notify_all()
-
-    def notify_many(self, keys: List[bytes], ttl: int) -> None:
+    def notify(self, keys: Iterable[bytes], ttl: int) -> None:
         with self.condition:
             self.events.update(keys)
             self.condition.notify_all()
