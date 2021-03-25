@@ -27,7 +27,7 @@ def test_abort_notifications_are_received(
     @dramatiq.actor(abortable=True, max_retries=0)
     def do_work() -> None:
         try:
-            for _ in range(10):
+            for _ in range(100):
                 time.sleep(0.1)
         except Abort:
             aborts.append(1)
@@ -40,7 +40,7 @@ def test_abort_notifications_are_received(
     message = do_work.send()
 
     # Then wait and signal the task to terminate
-    time.sleep(0.5)
+    time.sleep(1)
     abort(message.message_id)
 
     # Then join on the queue
@@ -86,7 +86,7 @@ def test_cancel_notifications_are_received(
     stub_broker.join(do_work.queue_name)
     stub_worker.join()
 
-    # Task will finished
+    # Task will finished, the cancel won't take any effect.
     assert successes
     assert not aborts
 
