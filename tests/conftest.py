@@ -75,10 +75,3 @@ def event_backend(
     request: Any, event_backends: Dict[str, EventBackend]
 ) -> EventBackend:
     return event_backends[request.param]
-
-
-@pytest.fixture(params=["cancel", "abort"])
-def mode(
-    request: Any,
-):
-    return request.param
