@@ -40,7 +40,7 @@ def test_abort_notifications_are_received(
     message = do_work.send()
 
     # Then wait and signal the task to terminate
-    time.sleep(1)
+    time.sleep(0.1)
     abort(message.message_id)
 
     # Then join on the queue
