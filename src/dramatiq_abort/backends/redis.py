@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple
+from typing import Any, Iterable, List, Optional, Tuple
 
 import redis
 
@@ -43,8 +43,9 @@ class RedisBackend(EventBackend):
         event: Optional[bytes] = self.client.lpop(key)
         return event == b"x"
 
-    def notify(self, key: bytes, ttl: int) -> None:
+    def notify(self, keys: Iterable[bytes], ttl: int) -> None:
         with self.client.pipeline() as pipe:
-            pipe.rpush(key, b"x")
-            pipe.pexpire(key, ttl)
+            for key in keys:
+                pipe.rpush(key, b"x")
+                pipe.pexpire(key, ttl)
             pipe.execute()
