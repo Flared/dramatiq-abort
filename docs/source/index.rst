@@ -50,7 +50,9 @@ Abort a task
 When an actor is sent to a worker, a message instance is returned with the
 message id. This message id can be kept somewhere so it can be used to abort
 the enqueued or running task. :any:`abort` can then be used to signal the task
-termination using the message id.
+termination using the message id in two mode.The `cancel` mode only abort the
+enqueued but pending task. Otherwise, `abort` mode will abort the pending or
+running task .
 
 .. code-block::
 
@@ -60,7 +62,9 @@ termination using the message id.
   message = my_long_running_task.send()
   message_id = message.message_id
 
+  # the default mode is 'abort'
   abort(message_id)
+  abort(message_id, mode='cancel')
 
 API
 ---

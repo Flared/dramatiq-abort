@@ -1,5 +1,5 @@
 import abc
-from typing import List, Optional
+from typing import Iterable, List, Optional
 
 
 class EventBackend(abc.ABC):
@@ -36,13 +36,25 @@ class EventBackend(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def notify(self, key: bytes, ttl: int) -> None:  # pragma: no cover
-        """Signal an event.
+    def notify(self, keys: Iterable[bytes], ttl: int) -> None:  # pragma: no cover
+        """Signal events.
 
         Once notified, a call to :any:`poll` or :any:`wait_many` with this event should
         result in a positive result.
 
         :param key: Event to signal.
+        :param ttl: Time for the signal to live. The value should be large
+            enough to give time for workers to poll the value, but small enough
+            that the backend doesn't end up with too many outdated keys not
+            being garbage collected.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def notify_many(self, keys: List[bytes], ttl: int) -> None:  # pragma: no cover
+        """Signal multi event once.
+
+        :param keys: Events to signal.
         :param ttl: Time for the signal to live. The value should be large
             enough to give time for workers to poll the value, but small enough
             that the backend doesn't end up with too many outdated keys not

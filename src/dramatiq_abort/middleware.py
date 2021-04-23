@@ -1,6 +1,7 @@
 import threading
 import time
 import warnings
+from enum import Enum
 from threading import Thread
 from typing import Any, Dict, Optional, Set
 
@@ -22,6 +23,18 @@ class Abort(Interrupt):
     """Exception used to interrupt worker threads when their worker
     processes have been signaled to abort.
     """
+
+
+class AbortMode(Enum):
+    """
+    Abort in following mode.
+
+    In "cancel" mode, only pending message will be aborted,
+    running message will also be aborted additionally in "abort" mode.
+    """
+
+    ABORT = "abort"
+    CANCEL = "cancel"
 
 
 class Abortable(Middleware):
@@ -83,7 +96,7 @@ class Abortable(Middleware):
         if not self.is_abortable(actor, message):
             return
 
-        if self.backend.poll(self.id_to_key(message.message_id)):
+        if self.backend.poll(self.id_to_key(message.message_id, AbortMode.CANCEL)):
             raise SkipMessage()
 
         self.abortables[message.message_id] = threading.get_ident()
@@ -101,8 +114,17 @@ class Abortable(Middleware):
 
     after_skip_message = after_process_message
 
-    def abort(self, message_id: str) -> None:
-        self.backend.notify(self.id_to_key(message_id), ttl=self.abort_ttl)
+    def abort(self, message_id: str, mode: AbortMode = AbortMode.ABORT) -> None:
+        if mode is AbortMode.ABORT:
+            self.backend.notify(
+                [
+                    self.id_to_key(message_id, AbortMode.CANCEL),
+                    self.id_to_key(message_id, AbortMode.ABORT),
+                ],
+                ttl=self.abort_ttl,
+            )
+        elif mode is AbortMode.CANCEL:
+            self.backend.notify([self.id_to_key(message_id, mode)], ttl=self.abort_ttl)
 
     def _handle(self) -> None:
         message_ids = list(self.abortables.keys())
@@ -110,12 +132,14 @@ class Abortable(Middleware):
             time.sleep(self.wait_timeout / 1000)
             return
 
-        abort_keys = [self.id_to_key(id_) for id_ in message_ids]
+        abort_keys = [self.id_to_key(id_, AbortMode.ABORT) for id_ in message_ids]
         key = self.backend.wait_many(abort_keys, self.wait_timeout)
         if not key:
             return
+        else:
+            self.backend.poll(key)
 
-        message_id = self.key_to_id(key)
+        message_id = self.key_to_id(key, AbortMode.ABORT)
         with self.lock:
             thread_id = self.abortables.pop(message_id, None)
             # In case the task was done in between the polling and now.
@@ -137,15 +161,21 @@ class Abortable(Middleware):
                 )
 
     @staticmethod
-    def id_to_key(message_id: str) -> bytes:
-        return ("abort:" + message_id).encode()
+    def id_to_key(message_id: str, mode: AbortMode = AbortMode.ABORT) -> bytes:
+        return (
+            ("abort:" if mode is AbortMode.ABORT else "cancel:") + message_id
+        ).encode()
 
     @staticmethod
-    def key_to_id(key: bytes) -> str:
-        return key.decode()[6:]
+    def key_to_id(key: bytes, mode: AbortMode = AbortMode.ABORT) -> str:
+        return key.decode()[6:] if mode is AbortMode.ABORT else key.decode()[7:]
 
 
-def abort(message_id: str, middleware: Optional[Abortable] = None) -> None:
+def abort(
+    message_id: str,
+    middleware: Optional[Abortable] = None,
+    mode: AbortMode = AbortMode.ABORT,
+) -> None:
     """Abort a pending or running message given its ``message_id``.
 
     :param message_id: Message to abort. Use the return value of ``actor.send``
@@ -156,6 +186,10 @@ def abort(message_id: str, middleware: Optional[Abortable] = None) -> None:
         from ``dramatiq.get_broker()`` and retrieve the configured :class:`Abortable`
         middleware. If no :class:`Abortable` middleware is set on the broker and
         ``middleware`` is ``None``, raises a :class:`RuntimeError`.
+
+    :param mode: "abort" or "cancel".
+        In "cancel" mode, only pending message will be aborted,
+        running message will also be aborted additionally in "abort" mode.
     :type middleware: :class:`Abortable`
     """
     if not middleware:
@@ -166,4 +200,6 @@ def abort(message_id: str, middleware: Optional[Abortable] = None) -> None:
         else:
             raise RuntimeError("The default broker doesn't have an abortable backend.")
 
-    middleware.abort(message_id)
+    mode = AbortMode(mode)
+
+    middleware.abort(message_id, mode)
