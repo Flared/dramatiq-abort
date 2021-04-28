@@ -172,5 +172,4 @@ def abort(message_id: str, middleware: Optional[Abortable] = None, abort_ttl: Op
         else:
             raise RuntimeError("The default broker doesn't have an abortable backend.")
 
-
     middleware.abort(message_id, abort_ttl)
