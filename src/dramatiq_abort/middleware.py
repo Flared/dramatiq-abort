@@ -101,7 +101,7 @@ class Abortable(Middleware):
 
     after_skip_message = after_process_message
 
-    def abort(self, message_id: str, abort_ttl: int) -> None:
+    def abort(self, message_id: str, abort_ttl: Optional[int] = None) -> None:
         if abort_ttl is None:
             abort_ttl = self.abort_ttl
 
@@ -148,7 +148,7 @@ class Abortable(Middleware):
         return key.decode()[6:]
 
 
-def abort(message_id: str, middleware: Optional[Abortable] = None, abort_ttl: int = None) -> None:
+def abort(message_id: str, middleware: Optional[Abortable] = None, abort_ttl: Optional[int] = None) -> None:
     """Abort a pending or running message given its ``message_id``.
 
     :param message_id: Message to abort. Use the return value of ``actor.send``
@@ -172,7 +172,5 @@ def abort(message_id: str, middleware: Optional[Abortable] = None, abort_ttl: in
         else:
             raise RuntimeError("The default broker doesn't have an abortable backend.")
 
-    if abort_ttl is not None:
-        middleware.abort(message_id, abort_ttl)
-    else:
-        middleware.abort(message_id)
+
+    middleware.abort(message_id, abort_ttl)
