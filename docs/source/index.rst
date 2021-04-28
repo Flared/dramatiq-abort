@@ -62,6 +62,19 @@ termination using the message id.
 
   abort(message_id)
 
+Abort a task using a custom abort_ttl value
+------------
+
+.. code-block::
+
+  @dramatiq.actor
+  def my_long_running_task(): ...
+
+  message = my_long_running_task.send()
+  message_id = message.message_id
+
+  abort(message_id, abort_ttl=271000)
+
 API
 ---
 
