@@ -148,7 +148,11 @@ class Abortable(Middleware):
         return key.decode()[6:]
 
 
-def abort(message_id: str, middleware: Optional[Abortable] = None, abort_ttl: Optional[int] = None) -> None:
+def abort(
+    message_id: str,
+    middleware: Optional[Abortable] = None,
+    abort_ttl: Optional[int] = None,
+) -> None:
     """Abort a pending or running message given its ``message_id``.
 
     :param message_id: Message to abort. Use the return value of ``actor.send``
@@ -161,8 +165,8 @@ def abort(message_id: str, middleware: Optional[Abortable] = None, abort_ttl: Op
         ``middleware`` is ``None``, raises a :class:`RuntimeError`.
     :type middleware: :class:`Abortable`
 
-    :param abort_ttl: Change default abort TTL value, optional argument. If set to ``None``
-        default value from :class:`Abortable` is used.
+    :param abort_ttl: Change default abort TTL value, optional argument. If set to
+        ``None`` default value from :class:`Abortable` is used.
     """
     if not middleware:
         broker = get_broker()
