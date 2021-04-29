@@ -101,8 +101,11 @@ class Abortable(Middleware):
 
     after_skip_message = after_process_message
 
-    def abort(self, message_id: str) -> None:
-        self.backend.notify(self.id_to_key(message_id), ttl=self.abort_ttl)
+    def abort(self, message_id: str, abort_ttl: Optional[int] = None) -> None:
+        if abort_ttl is None:
+            abort_ttl = self.abort_ttl
+
+        self.backend.notify(self.id_to_key(message_id), ttl=abort_ttl)
 
     def _handle(self) -> None:
         message_ids = list(self.abortables.keys())
@@ -145,7 +148,11 @@ class Abortable(Middleware):
         return key.decode()[6:]
 
 
-def abort(message_id: str, middleware: Optional[Abortable] = None) -> None:
+def abort(
+    message_id: str,
+    middleware: Optional[Abortable] = None,
+    abort_ttl: Optional[int] = None,
+) -> None:
     """Abort a pending or running message given its ``message_id``.
 
     :param message_id: Message to abort. Use the return value of ``actor.send``
@@ -157,6 +164,9 @@ def abort(message_id: str, middleware: Optional[Abortable] = None) -> None:
         middleware. If no :class:`Abortable` middleware is set on the broker and
         ``middleware`` is ``None``, raises a :class:`RuntimeError`.
     :type middleware: :class:`Abortable`
+
+    :param abort_ttl: Change default abort TTL value, optional argument. If set to
+        ``None`` default value from :class:`Abortable` is used.
     """
     if not middleware:
         broker = get_broker()
@@ -166,4 +176,4 @@ def abort(message_id: str, middleware: Optional[Abortable] = None) -> None:
         else:
             raise RuntimeError("The default broker doesn't have an abortable backend.")
 
-    middleware.abort(message_id)
+    middleware.abort(message_id, abort_ttl)
