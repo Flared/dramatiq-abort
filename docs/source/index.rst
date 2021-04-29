@@ -75,7 +75,7 @@ By default, abort has a limited window of 90,000 milliseconds. This means a work
   message = count_words.send_with_options(args=("https://example.com",), delay=60*60*1000)
   message_id = message.message_id
 
-  abort(message_id, abort_ttl=271000)
+  abort(message_id, abort_ttl=2*60*60*1000)
 
 API
 ---
