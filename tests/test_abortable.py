@@ -1,11 +1,15 @@
+import logging
 import time
 from typing import Optional
+from unittest import mock
 
 import dramatiq
 import pytest
+from _pytest.logging import LogCaptureFixture
 from dramatiq.middleware import threading
 
 from dramatiq_abort import Abort, Abortable, EventBackend, abort
+from dramatiq_abort.middleware import is_gevent_active
 
 not_supported = threading.current_platform not in threading.supported_platforms
 
@@ -205,3 +209,67 @@ def test_abort_with_no_middleware(
         raise AssertionError("Exception not raised")
     except RuntimeError:
         assert True
+
+
+@pytest.mark.skipif(is_gevent_active(), reason="Test behaviour is dependent on gevent.")
+@mock.patch("dramatiq_abort.middleware.raise_thread_exception")
+def test_worker_abort_messages(
+    raise_thread_exception: mock.Mock,
+    stub_event_backend: EventBackend,
+    caplog: LogCaptureFixture,
+) -> None:
+    # capture all messages
+    caplog.set_level(logging.NOTSET)
+
+    # Given a middleware with an abortable "thread"
+    middleware = Abortable(backend=stub_event_backend)
+    middleware.manager.abortables = {"fake_message_id": 1}
+
+    # When the message is aborted
+    middleware.manager.abort("fake_message_id")
+
+    # An abort exception is raised in the thread
+    raise_thread_exception.assert_has_calls([mock.call(1, Abort)])
+
+    # And abort actions are logged
+    assert len(caplog.record_tuples) == 1
+    assert caplog.record_tuples == [
+        (
+            "dramatiq_abort.middleware.Abortable",
+            logging.INFO,
+            ("Aborting task. Raising exception in worker thread 1."),
+        )
+    ]
+
+
+@pytest.mark.skipif(
+    not is_gevent_active(), reason="Test behaviour is dependent on gevent."
+)
+def test_gevent_worker_abort_messages(
+    stub_event_backend: EventBackend, caplog: LogCaptureFixture
+) -> None:
+    import gevent
+
+    # capture all messages
+    caplog.set_level(logging.NOTSET)
+
+    # Given a middleware with an abortable "thread"
+    greenlet = gevent.spawn()
+    middleware = Abortable(backend=stub_event_backend)
+    middleware.manager.abortables = {"fake_message_id": (1, greenlet)}
+
+    # When the message is aborted
+    middleware.manager.abort("fake_message_id")
+
+    # An abort exception is raised in the thread
+    assert isinstance(greenlet.exception, Abort)
+
+    # And abort actions are logged
+    assert len(caplog.record_tuples) == 1
+    assert caplog.record_tuples == [
+        (
+            "dramatiq_abort.middleware.Abortable",
+            logging.INFO,
+            ("Aborting task. Raising exception in worker thread 1."),
+        )
+    ]

@@ -25,7 +25,7 @@ def check_redis(client: Any) -> None:
     try:
         client.ping()
     except redis.ConnectionError as e:
-        raise e if CI else pytest.skip("No connection to Redis server.")
+        raise e from e if CI else pytest.skip("No connection to Redis server.")
 
 
 @pytest.fixture()

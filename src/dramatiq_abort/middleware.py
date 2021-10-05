@@ -1,8 +1,9 @@
 import threading
 import time
 import warnings
+from logging import Logger
 from threading import Thread
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional, Set, Tuple
 
 import dramatiq
 from dramatiq import get_broker
@@ -16,6 +17,20 @@ from dramatiq.middleware.threading import (
 )
 
 from .backend import EventBackend
+
+
+def is_gevent_active() -> bool:
+    """Detect if gevent monkey patching is active.
+
+    This function should be removed and replaced with the identically named
+    function imported from dramatiq.middleware.threading as soon as a
+    dependency on a version of dramatiq with this function can be made.
+    """
+    try:
+        from gevent import monkey
+    except ImportError:  # pragma: no cover
+        return False
+    return bool(monkey.saved)
 
 
 class Abort(Interrupt):
@@ -52,7 +67,11 @@ class Abortable(Middleware):
         self.backend = backend
         self.wait_timeout = 1000
         self.abort_ttl = 90000
-        self.abortables: Dict[str, int] = {}
+        self.manager: Any = None
+        if is_gevent_active():
+            self.manager = _GeventAbortManager(self.logger)
+        else:
+            self.manager = _CtypesAbortManager(self.logger)
         # This lock avoid race between the monitor and a task cleaning up.
         self.lock = threading.Lock()
 
@@ -86,7 +105,7 @@ class Abortable(Middleware):
         if self.backend.poll(self.id_to_key(message.message_id)):
             raise SkipMessage()
 
-        self.abortables[message.message_id] = threading.get_ident()
+        self.manager.add_abortable(message.message_id)
 
     def after_process_message(
         self,
@@ -97,7 +116,7 @@ class Abortable(Middleware):
         exception: Optional[BaseException] = None
     ) -> None:
         with self.lock:
-            self.abortables.pop(message.message_id, None)
+            self.manager.remove_abortable(message.message_id)
 
     after_skip_message = after_process_message
 
@@ -108,7 +127,7 @@ class Abortable(Middleware):
         self.backend.notify(self.id_to_key(message_id), ttl=abort_ttl)
 
     def _handle(self) -> None:
-        message_ids = list(self.abortables.keys())
+        message_ids = list(self.manager.abortables.keys())
         if not message_ids:
             time.sleep(self.wait_timeout / 1000)
             return
@@ -120,15 +139,7 @@ class Abortable(Middleware):
 
         message_id = self.key_to_id(key)
         with self.lock:
-            thread_id = self.abortables.pop(message_id, None)
-            # In case the task was done in between the polling and now.
-            if thread_id is None:
-                return  # pragma: no cover
-
-            self.logger.info(
-                "Aborting task. Raising exception in worker thread %r.", thread_id
-            )
-            raise_thread_exception(thread_id, Abort)
+            self.manager.abort(message_id)
 
     def _watcher(self) -> None:
         while True:
@@ -177,3 +188,64 @@ def abort(
             raise RuntimeError("The default broker doesn't have an abortable backend.")
 
     middleware.abort(message_id, abort_ttl)
+
+
+class _CtypesAbortManager:
+    """Manager for raising Abort exceptions via the ctypes api.
+
+    :param logger: The logger for abort log lines.
+    :type logger: :class:`logging.Logger`
+    """
+
+    def __init__(self, logger: Optional[Logger] = None):
+        self.logger = logger or get_logger(__name__, type(self))
+        self.abortables: Dict[str, int] = {}
+
+    def add_abortable(self, message_id: str) -> None:
+        self.abortables[message_id] = threading.get_ident()
+
+    def remove_abortable(self, message_id: str) -> None:
+        self.abortables.pop(message_id, None)
+
+    def abort(self, message_id: str) -> None:
+        thread_id = self.abortables.pop(message_id, None)
+        # In case the task was done in between the polling and now.
+        if thread_id is None:
+            return  # pragma: no cover
+
+        self.logger.info(
+            "Aborting task. Raising exception in worker thread %r.", thread_id
+        )
+        raise_thread_exception(thread_id, Abort)
+
+
+if is_gevent_active():
+    from gevent import Greenlet, getcurrent
+
+    class _GeventAbortManager:
+        """Manager for raising Abort exceptions in green threads.
+
+        :param logger: The logger for abort log lines.
+        :type logger: :class:`logging.Logger`
+        """
+
+        def __init__(self, logger: Optional[Logger] = None):
+            self.logger = logger or get_logger(__name__, type(self))
+            self.abortables: Dict[str, Tuple[int, Greenlet]] = {}
+
+        def add_abortable(self, message_id: str) -> None:
+            self.abortables[message_id] = (threading.get_ident(), getcurrent())
+
+        def remove_abortable(self, message_id: str) -> None:
+            self.abortables.pop(message_id, (None, None))
+
+        def abort(self, message_id: str) -> None:
+            thread_id, greenlet = self.abortables.pop(message_id, (None, None))
+            # In case the task was done in between the polling and now.
+            if greenlet is None:
+                return  # pragma: no cover
+
+            self.logger.info(
+                "Aborting task. Raising exception in worker thread %r.", thread_id
+            )
+            greenlet.kill(Abort, block=False)
