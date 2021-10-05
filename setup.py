@@ -45,6 +45,7 @@ dependencies = [
 ]
 
 extra_dependencies = {
+    "gevent": ["gevent>=1.1"],
     "redis": ["redis>=2.0,<4.0"],
 }
 
