@@ -57,6 +57,7 @@ extra_dependencies["dev"] = extra_dependencies["all"] + [
     "flake8-quotes",
     "isort",
     "mypy",
+    "types-redis",
     "black",
     # Testing
     "pytest",
