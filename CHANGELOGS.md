@@ -1,5 +1,10 @@
 # Changelogs
 
+## 0.4.0
+
+ * Support two abort mode. `cancel` to cancel the pending task, and the default
+   `abort` to abort either pending or running task. (#7)
+
 ## 0.3.1
 
  * Add `gevent` support  (@FinnLidbetter, #12)

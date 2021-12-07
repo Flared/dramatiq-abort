@@ -66,6 +66,10 @@ extra_dependencies["dev"] = extra_dependencies["all"] + [
     # Docs
     "sphinx",
     "sphinx-autodoc-typehints",
+    # Build
+    "build",
+    "wheel",
+    "twine",
 ]
 
 setup(
