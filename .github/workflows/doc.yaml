@@ -23,8 +23,8 @@ jobs:
     - name: Build Docs
       run: pip install .[dev] && make -C docs && touch docs/build/html/.nojekyll
     - name: Deploy Docs
-      uses: JamesIves/github-pages-deploy-action@releases/v3
+      uses: JamesIves/github-pages-deploy-action@releases/@4.1.7
       with:
-        BRANCH: gh-pages
-        FOLDER: docs/build/html
+        branch: gh-pages
+        folder: docs/build/html
 
