@@ -28,16 +28,4 @@ Successful `tox` run is a prerequisite for a Pull Request to be merged.
 
 # Release Guide
 
-Build source and wheel package.
-
-```
-python -m build --sdist
-python -m build --wheel
-```
-
-Publish package:
-
-```
-twine check dist/*
-twine upload dist/*
-```
+Simply create a Github release. A Github action is defined on `.github/workflows/publish.yaml`.
