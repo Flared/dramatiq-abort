@@ -1,5 +1,6 @@
 import logging
 import time
+from threading import Event
 from typing import Optional
 from unittest import mock
 
@@ -9,7 +10,7 @@ from _pytest.logging import LogCaptureFixture
 from dramatiq.middleware import threading
 
 from dramatiq_abort import Abort, Abortable, EventBackend, abort
-from dramatiq_abort.middleware import is_gevent_active
+from dramatiq_abort.middleware import AbortMode, is_gevent_active
 
 not_supported = threading.current_platform not in threading.supported_platforms
 
@@ -25,11 +26,13 @@ def test_abort_notifications_are_received(
 
     abortable = Abortable(backend=event_backend)
     stub_broker.add_middleware(abortable)
+    test_event = Event()
 
     # And an actor that handles shutdown interrupts
     @dramatiq.actor(abortable=True, max_retries=0)
     def do_work() -> None:
         try:
+            test_event.set()
             for _ in range(10):
                 time.sleep(0.1)
         except Abort:
@@ -43,12 +46,57 @@ def test_abort_notifications_are_received(
     message = do_work.send()
 
     # Then wait and signal the task to terminate
-    time.sleep(0.1)
+    test_event.wait()
     abort(message.message_id)
 
     # Then join on the queue
     stub_broker.join(do_work.queue_name)
     stub_worker.join()
+    assert aborts
+    assert not successes
+
+
+@pytest.mark.skipif(not_supported, reason="Threading not supported on this platform.")
+def test_cancel_notifications_are_received(
+    stub_broker: dramatiq.Broker,
+    stub_worker: dramatiq.Worker,
+    event_backend: EventBackend,
+) -> None:
+    # Given that I have a database
+    aborts, successes = [], []
+
+    abortable = Abortable(backend=event_backend)
+    stub_broker.add_middleware(abortable)
+    test_event = Event()
+
+    # And an actor that handles shutdown interrupts
+    @dramatiq.actor(abortable=True, max_retries=0)
+    def do_work() -> None:
+        try:
+            test_event.set()
+            for _ in range(10):
+                time.sleep(0.1)
+        except Abort:
+            aborts.append(1)
+            raise
+        successes.append(1)
+
+    stub_broker.emit_after("process_boot")
+
+    # If I send it a message
+    message = do_work.send()
+
+    # Then wait
+    test_event.wait()
+    abort(message.message_id, mode=AbortMode.CANCEL)
+
+    # Then join on the queue
+    stub_broker.join(do_work.queue_name)
+    stub_worker.join()
+
+    # Task will finished, the cancel won't take any effect.
+    assert successes
+    assert not aborts
 
 
 def test_not_abortable(
@@ -59,10 +107,12 @@ def test_not_abortable(
     aborts, successes = [], []
     abortable = Abortable(backend=stub_event_backend)
     stub_broker.add_middleware(abortable)
+    test_event = Event()
 
     @dramatiq.actor(abortable=False)
     def not_abortable() -> None:
         try:
+            test_event.set()
             for _ in range(10):
                 time.sleep(0.1)
         except Abort:
@@ -76,7 +126,7 @@ def test_not_abortable(
     message = not_abortable.send()
 
     # Then wait and signal the task to terminate
-    time.sleep(0.1)
+    test_event.wait()
     abort(message.message_id)
 
     # Then join on the queue
@@ -88,8 +138,17 @@ def test_not_abortable(
     assert sum(successes) == 1
 
 
+@pytest.mark.parametrize(
+    "mode",
+    [
+        (AbortMode.ABORT,),
+        (AbortMode.CANCEL,),
+    ],
+)
 def test_abort_before_processing(
-    stub_broker: dramatiq.Broker, stub_event_backend: EventBackend
+    stub_broker: dramatiq.Broker,
+    stub_event_backend: EventBackend,
+    mode: AbortMode,
 ) -> None:
     calls = []
     abortable = Abortable(backend=stub_event_backend)
@@ -103,8 +162,8 @@ def test_abort_before_processing(
 
     # If I send it a message
     message = do_work.send()
-    # And abort right after.
-    abort(message.message_id)
+    # And cancel right after.
+    abort(message.message_id, mode=mode)
 
     # Then start the worker.
     worker = dramatiq.Worker(stub_broker, worker_timeout=100, worker_threads=1)
