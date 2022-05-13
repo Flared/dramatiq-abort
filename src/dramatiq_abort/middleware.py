@@ -195,7 +195,8 @@ def abort(
     """Abort a pending or running message given its ``message_id``.
 
     :param message_id: Message to abort. Use the return value of ``actor.send``
-        or ``actor.send_with_options`` to then use its ``.message_id`` attribute.
+        or ``actor.send_with_options`` to then use its ``.message_id`` attribute. Set 
+        this to `"all"` to abort **all** running tasks.
 
     :param middleware: :class:`Abortable` middleware used by the workers and
         broker used to signal termination. If set to ``None``, use the default broker
@@ -240,15 +241,20 @@ class _CtypesAbortManager:
         self.abortables.pop(message_id, None)
 
     def abort(self, message_id: str) -> None:
-        thread_id = self.abortables.pop(message_id, None)
+        if message_id is "all":
+            thread_ids = self.abortables.values()
+            self.abortables = {}
+        else:
+            thread_ids = (self.abortables.pop(message_id, None),)
         # In case the task was done in between the polling and now.
-        if thread_id is None:
+        if thread_ids[0] is None:
             return  # pragma: no cover
 
         self.logger.info(
-            "Aborting task. Raising exception in worker thread %r.", thread_id
+            "Aborting task. Raising exception in %d  worker threads ", len(thread_ids)
         )
-        raise_thread_exception(thread_id, Abort)
+        for thread_id in thread_ids:
+            raise_thread_exception(thread_id, Abort)
 
 
 if is_gevent_active():
