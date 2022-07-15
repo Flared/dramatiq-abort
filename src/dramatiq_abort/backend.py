@@ -1,5 +1,10 @@
 import abc
-from typing import Any, Dict, Iterable, Optional, Tuple
+from typing import Any, Dict, Iterable, Optional, Tuple, NamedTuple
+
+
+class Event(NamedTuple):
+    key: str
+    params: Dict[str, Any]
 
 
 class EventBackend(abc.ABC):
@@ -8,7 +13,7 @@ class EventBackend(abc.ABC):
     @abc.abstractmethod
     def wait_many(
         self, keys: Iterable[str], timeout: int
-    ) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:  # pragma: no cover
+    ) -> Optional[Event]:  # pragma: no cover
         """Wait for either one of the event in ``keys`` to be signaled or
         ``timeout`` milliseconds to elapsed.
 
@@ -23,7 +28,7 @@ class EventBackend(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def poll(self, key: str) -> Optional[Dict[str, Any]]:  # pragma: no cover
+    def poll(self, key: str) -> Optional[Event]:  # pragma: no cover
         """Check if an event has been signaled.
 
         This function should not block and wait for an event to signal.
@@ -37,7 +42,7 @@ class EventBackend(abc.ABC):
 
     @abc.abstractmethod
     def notify(
-        self, items: Iterable[Tuple[str, Dict[str, Any]]], ttl: int
+        self, events: Iterable[Event], ttl: int
     ) -> None:  # pragma: no cover
         """Signal events.
 

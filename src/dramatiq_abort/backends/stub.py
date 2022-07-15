@@ -1,7 +1,7 @@
 from threading import Condition
 from typing import Any, Dict, Iterable, Optional, Tuple
 
-from ..backend import EventBackend
+from ..backend import EventBackend, Event
 
 
 class StubBackend(EventBackend):
@@ -11,23 +11,25 @@ class StubBackend(EventBackend):
 
     def wait_many(
         self, keys: Iterable[str], timeout: int
-    ) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
+    ) -> Optional[Event]:
         with self.condition:
             if self.condition.wait_for(
                 lambda: self._anyset(keys), timeout=timeout / 1000
             ):
                 for key in keys:
                     if key in self.events:
-                        return key, self.events.pop(key)
-        return None, None
+                        return Event(key, self.events.pop(key))
+        return None
 
-    def poll(self, key: str) -> Optional[Dict[str, Any]]:
+    def poll(self, key: str) -> Optional[Event]:
         with self.condition:
-            return self.events.pop(key, None)
+            if key not in self.events:
+                return None
+            return Event(key, self.events.pop(key))
 
-    def notify(self, items: Iterable[Tuple[str, Dict[str, Any]]], ttl: int) -> None:
+    def notify(self, events: Iterable[Event], ttl: int) -> None:
         with self.condition:
-            for k, v in items:
+            for k, v in events:
                 self.events[k] = v
             self.condition.notify_all()
 
