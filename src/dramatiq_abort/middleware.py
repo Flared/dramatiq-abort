@@ -4,7 +4,7 @@ import warnings
 from enum import Enum
 from logging import Logger
 from threading import Thread
-from typing import Any, Dict, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import dramatiq
 from dramatiq import get_broker
@@ -91,8 +91,6 @@ class Abortable(Middleware):
             self.manager = _GeventAbortManager(self.logger)
         else:
             self.manager = _CtypesAbortManager(self.logger)
-        # This lock avoid race between the monitor and a task cleaning up.
-        self.lock = threading.Lock()
 
     @property
     def actor_options(self) -> Set[str]:
@@ -106,7 +104,9 @@ class Abortable(Middleware):
             abortable = self.abortable
         return bool(abortable)
 
-    def after_process_boot(self, broker: dramatiq.Broker) -> None:
+    def before_worker_boot(
+        self, broker: dramatiq.Broker, worker: dramatiq.Worker
+    ) -> None:
         if current_platform in supported_platforms:
             thread = Thread(target=self._watcher, daemon=True)
             thread.start()
@@ -121,7 +121,8 @@ class Abortable(Middleware):
         if not self.is_abortable(actor, message):
             return
 
-        if self.backend.poll(self.id_to_key(message.message_id, AbortMode.CANCEL)):
+        args = self.backend.poll(self.id_to_key(message.message_id, AbortMode.CANCEL))
+        if args is not None:
             raise SkipMessage()
 
         self.manager.add_abortable(message.message_id)
@@ -134,8 +135,7 @@ class Abortable(Middleware):
         result: Optional[Any] = None,
         exception: Optional[BaseException] = None
     ) -> None:
-        with self.lock:
-            self.manager.remove_abortable(message.message_id)
+        self.manager.remove_abortable(message.message_id)
 
     after_skip_message = after_process_message
 
@@ -144,46 +144,66 @@ class Abortable(Middleware):
         message_id: str,
         abort_ttl: Optional[int] = None,
         mode: AbortMode = AbortMode.ABORT,
+        abort_timeout: int = 0,
     ) -> None:
         if abort_ttl is None:
             abort_ttl = self.abort_ttl
-        modes = [AbortMode.CANCEL]
+        modes: List[Tuple[AbortMode, Dict[str, Any]]]
+        modes = [(AbortMode.CANCEL, dict())]
         if mode is AbortMode.ABORT:
-            modes.append(AbortMode.ABORT)
-        keys = [self.id_to_key(message_id, mode) for mode in modes]
-        self.backend.notify(keys, ttl=abort_ttl)
+            modes.append((AbortMode.ABORT, dict(abort_timeout=abort_timeout)))
+        values = [(self.id_to_key(message_id, mode), args) for mode, args in modes]
+        self.backend.notify(values, ttl=abort_ttl)
 
-    def _handle(self) -> None:
-        message_ids = list(self.manager.abortables.keys())
+    def check_abort_request(self) -> Optional[float]:
+        abort_time: Optional[float]
+        _, abort_time = self.manager.abort_requests.get(
+            threading.get_ident(), (None, None)
+        )
+        if abort_time is None:
+            return None
+        return 1000 * (abort_time - time.monotonic())
+
+    def _get_abort_requests(self) -> None:
+        message_ids = self.manager.abortable_messages.keys()
         if not message_ids:
             time.sleep(self.wait_timeout / 1000)
             return
 
         abort_keys = [self.id_to_key(id_, AbortMode.ABORT) for id_ in message_ids]
-        key = self.backend.wait_many(abort_keys, self.wait_timeout)
+        key, args = self.backend.wait_many(abort_keys, self.wait_timeout)
         if not key:
             return
 
         message_id = self.key_to_id(key)
-        with self.lock:
-            self.manager.abort(message_id)
+        self.manager.add_abort_request(message_id, **args)
 
     def _watcher(self) -> None:
         while True:
             try:
-                self._handle()
+                self._get_abort_requests()
+                self.manager.abort_pending()
             except Exception:  # pragma: no cover
                 self.logger.exception(
                     "Unhandled error while running the time limit handler."
                 )
 
     @staticmethod
-    def id_to_key(message_id: str, mode: AbortMode = AbortMode.ABORT) -> bytes:
-        return (mode.value + ":" + message_id).encode()
+    def id_to_key(message_id: str, mode: AbortMode = AbortMode.ABORT) -> str:
+        return mode.value + ":" + message_id
 
     @staticmethod
-    def key_to_id(key: bytes) -> str:
-        return key.split(b":", 1)[-1].decode()
+    def key_to_id(key: str) -> str:
+        return key.split(":", 1)[-1]
+
+
+def _get_abortable_from_broker() -> Abortable:
+    broker = get_broker()
+    for middleware in broker.middleware:
+        if isinstance(middleware, Abortable):
+            return middleware
+    else:
+        raise RuntimeError("The default broker doesn't have an abortable backend.")
 
 
 def abort(
@@ -191,6 +211,7 @@ def abort(
     middleware: Optional[Abortable] = None,
     abort_ttl: Optional[int] = None,
     mode: AbortMode = AbortMode.ABORT,
+    abort_timeout: int = 0,
 ) -> None:
     """Abort a pending or running message given its ``message_id``.
 
@@ -212,14 +233,15 @@ def abort(
         running message will also be aborted additionally in "abort" mode.
     """
     if not middleware:
-        broker = get_broker()
-        for middleware in broker.middleware:
-            if isinstance(middleware, Abortable):
-                break
-        else:
-            raise RuntimeError("The default broker doesn't have an abortable backend.")
+        middleware = _get_abortable_from_broker()
 
-    middleware.abort(message_id, abort_ttl, mode)
+    middleware.abort(message_id, abort_ttl, mode, abort_timeout)
+
+
+def abort_requested(middleware: Optional[Abortable] = None) -> Optional[float]:
+    if not middleware:
+        middleware = _get_abortable_from_broker()
+    return middleware.check_abort_request()
 
 
 class _CtypesAbortManager:
@@ -231,24 +253,54 @@ class _CtypesAbortManager:
 
     def __init__(self, logger: Optional[Logger] = None):
         self.logger = logger or get_logger(__name__, type(self))
-        self.abortables: Dict[str, int] = {}
+        # This lock avoid race between the monitor and a task cleaning up.
+        self.lock = threading.Lock()
+        self.abortable_messages: Dict[str, int] = {}
+        self.abort_requests: Dict[int, Tuple[str, float]] = {}
 
     def add_abortable(self, message_id: str) -> None:
-        self.abortables[message_id] = threading.get_ident()
+        self.abortable_messages[message_id] = threading.get_ident()
 
     def remove_abortable(self, message_id: str) -> None:
-        self.abortables.pop(message_id, None)
+        with self.lock:
+            thread_id = threading.get_ident()
+            saved_thread_id = self.abortable_messages.pop(message_id, None)
+            saved_message_id, _ = self.abort_requests.pop(thread_id, (None, None))
+            assert not saved_thread_id or thread_id == saved_thread_id
+            assert not saved_message_id or saved_message_id == message_id
 
-    def abort(self, message_id: str) -> None:
-        thread_id = self.abortables.pop(message_id, None)
-        # In case the task was done in between the polling and now.
-        if thread_id is None:
-            return  # pragma: no cover
+    def add_abort_request(self, message_id: str, abort_timeout: int = 0) -> None:
+        with self.lock:
+            thread_id = self.abortable_messages.get(message_id, None)
+            if thread_id is None:
+                # If the task finished before we signaled it to abort
+                return
+            self.abort_requests[thread_id] = (
+                message_id,
+                time.monotonic() + abort_timeout / 1000,
+            )
 
-        self.logger.info(
-            "Aborting task. Raising exception in worker thread %r.", thread_id
-        )
-        raise_thread_exception(thread_id, Abort)
+    def abort_pending(self) -> None:
+        with self.lock:
+            toabort = [
+                thread_id
+                for thread_id, (_, abort_time) in self.abort_requests.items()
+                if time.monotonic() >= abort_time
+            ]
+
+            for thread_id in toabort:
+                message_id, abort_time = self.abort_requests.pop(thread_id, ("", None))
+                saved_thread_id = self.abortable_messages.pop(message_id, None)
+                assert saved_thread_id == thread_id
+                if thread_id is None or abort_time is None:
+                    # If the task finished before abort_timeout passed
+                    assert thread_id is None and abort_time is None
+                    return
+
+                self.logger.info(
+                    "Aborting task. Raising exception in worker thread %r.", thread_id
+                )
+                raise_thread_exception(thread_id, Abort)
 
 
 if is_gevent_active():
