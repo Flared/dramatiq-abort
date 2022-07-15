@@ -1,6 +1,7 @@
 __version__ = "0.4.0"
 
-from .backend import EventBackend
-from .middleware import Abort, Abortable, abort
+from .abort_manager import Abort
+from .backend import Event, EventBackend
+from .middleware import Abortable, abort, abort_requested
 
-__all__ = ["EventBackend", "Abortable", "Abort", "abort"]
+__all__ = ["Event", "EventBackend", "Abortable", "Abort", "abort", "abort_requested"]

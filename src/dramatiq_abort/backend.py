@@ -1,5 +1,12 @@
 import abc
-from typing import Iterable, List, Optional
+from typing import Any, Dict, Iterable, NamedTuple, Optional
+
+
+class Event(NamedTuple):
+    """Events are composed of an identifying key and associated parameters."""
+
+    key: str
+    params: Dict[str, Any]
 
 
 class EventBackend(abc.ABC):
@@ -7,9 +14,9 @@ class EventBackend(abc.ABC):
 
     @abc.abstractmethod
     def wait_many(
-        self, keys: List[bytes], timeout: int
-    ) -> Optional[bytes]:  # pragma: no cover
-        """Wait for either one of the event in ``keys`` to be signaled or
+        self, keys: Iterable[str], timeout: int
+    ) -> Optional[Event]:  # pragma: no cover
+        """Wait for either one of the events in ``keys`` to be signaled or
         ``timeout`` milliseconds to elapsed.
 
         Returns the event that signaled or ``None`` if no event was signaled.
@@ -23,20 +30,20 @@ class EventBackend(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def poll(self, key: bytes) -> bool:  # pragma: no cover
+    def poll(self, key: str) -> Optional[Event]:  # pragma: no cover
         """Check if an event has been signaled.
 
         This function should not block and wait for an event to signal.
-        Returns ``True`` if the event was signaled, ``False`` otherwise.
+        Returns the event if it was signaled, ``None`` otherwise.
         A backend might not be idempotent and once a key has signaled,
-        subsequent call returns ``False``.
+        subsequent calls might return ``None``.
 
         :param key: Event to check for signal.
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def notify(self, keys: Iterable[bytes], ttl: int) -> None:  # pragma: no cover
+    def notify(self, events: Iterable[Event], ttl: int) -> None:  # pragma: no cover
         """Signal events.
 
         Once notified, a call to :any:`poll` or :any:`wait_many` with this event should

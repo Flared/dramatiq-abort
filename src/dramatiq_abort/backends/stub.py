@@ -1,41 +1,35 @@
 from threading import Condition
-from typing import Iterable, List, Optional, Set
+from typing import Any, Dict, Iterable, Optional
 
-from ..backend import EventBackend
+from ..backend import Event, EventBackend
 
 
 class StubBackend(EventBackend):
     def __init__(self) -> None:
         self.condition = Condition()
-        self.events: Set[bytes] = set()
+        self.events: Dict[str, Dict[str, Any]] = dict()
 
-    def wait_many(self, keys: List[bytes], timeout: int) -> Optional[bytes]:
+    def wait_many(self, keys: Iterable[str], timeout: int) -> Optional[Event]:
         with self.condition:
             if self.condition.wait_for(
                 lambda: self._anyset(keys), timeout=timeout / 1000
             ):
                 for key in keys:
                     if key in self.events:
-                        self.events.remove(key)
-                        return key
+                        return Event(key, self.events.pop(key))
         return None
 
-    def poll(self, key: bytes) -> bool:
+    def poll(self, key: str) -> Optional[Event]:
         with self.condition:
-            if key in self.events:
-                self.events.remove(key)
-                return True
-        return False
+            if key not in self.events:
+                return None
+            return Event(key, self.events.pop(key))
 
-    def notify(self, keys: Iterable[bytes], ttl: int) -> None:
+    def notify(self, events: Iterable[Event], ttl: int) -> None:
         with self.condition:
-            self.events.update(keys)
+            for k, v in events:
+                self.events[k] = v
             self.condition.notify_all()
 
-    def notify_many(self, keys: List[bytes], ttl: int) -> None:
-        with self.condition:
-            self.events.update(keys)
-            self.condition.notify_all()
-
-    def _anyset(self, keys: List[bytes]) -> bool:
+    def _anyset(self, keys: Iterable[str]) -> bool:
         return any(k in self.events for k in keys)
