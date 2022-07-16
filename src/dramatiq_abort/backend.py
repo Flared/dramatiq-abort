@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Dict, Iterable, Optional, Tuple, NamedTuple
+from typing import Any, Dict, Iterable, NamedTuple, Optional
 
 
 class Event(NamedTuple):
@@ -41,9 +41,7 @@ class EventBackend(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def notify(
-        self, events: Iterable[Event], ttl: int
-    ) -> None:  # pragma: no cover
+    def notify(self, events: Iterable[Event], ttl: int) -> None:  # pragma: no cover
         """Signal events.
 
         Once notified, a call to :any:`poll` or :any:`wait_many` with this event should

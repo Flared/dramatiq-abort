@@ -1,7 +1,7 @@
 from threading import Condition
-from typing import Any, Dict, Iterable, Optional, Tuple
+from typing import Any, Dict, Iterable, Optional
 
-from ..backend import EventBackend, Event
+from ..backend import Event, EventBackend
 
 
 class StubBackend(EventBackend):
@@ -9,9 +9,7 @@ class StubBackend(EventBackend):
         self.condition = Condition()
         self.events: Dict[str, Dict[str, Any]] = dict()
 
-    def wait_many(
-        self, keys: Iterable[str], timeout: int
-    ) -> Optional[Event]:
+    def wait_many(self, keys: Iterable[str], timeout: int) -> Optional[Event]:
         with self.condition:
             if self.condition.wait_for(
                 lambda: self._anyset(keys), timeout=timeout / 1000

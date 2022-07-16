@@ -1,10 +1,9 @@
 import json
-from typing import Any, Dict, Iterable, Optional, Tuple, Union, overload
+from typing import Any, Dict, Iterable, Optional, Tuple
 
 import redis
 
-from ..backend import EventBackend, Event
-
+from ..backend import Event, EventBackend
 
 DEFAULT_NAMESPACE = "dramatiq:aborts:"
 
@@ -36,9 +35,7 @@ class RedisBackend(EventBackend):
             **kwargs,
         )
 
-    def wait_many(
-        self, keys: Iterable[str], timeout: int
-    ) -> Optional[Event]:
+    def wait_many(self, keys: Iterable[str], timeout: int) -> Optional[Event]:
         assert timeout is None or timeout >= 1000, "wait timeouts must be >= 1000"
         event: Optional[Tuple[bytes, Optional[bytes]]]
         event = self.client.blpop(
