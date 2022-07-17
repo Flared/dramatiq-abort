@@ -51,7 +51,7 @@ class RedisBackend(EventBackend):
     def poll(self, key: str) -> Optional[Event]:
         encoded_value: Optional[bytes] = self.client.lpop(self._encode_key(key))
         value = self._decode_value(encoded_value)
-        if not value:
+        if value is None:
             return None
         return Event(key, value)
 
