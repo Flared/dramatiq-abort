@@ -26,6 +26,7 @@ def test_abort_notifications_are_received(
 
     abortable = Abortable(backend=event_backend)
     stub_broker.add_middleware(abortable)
+    abortable.before_worker_boot(stub_broker, stub_worker)
     test_event = Event()
 
     # And an actor that handles shutdown interrupts
@@ -40,14 +41,15 @@ def test_abort_notifications_are_received(
             raise
         successes.append(1)
 
-    stub_broker.emit_after("process_boot")
-
     # If I send it a message
     message = do_work.send()
 
     # Then wait and signal the task to terminate
     test_event.wait()
     abort(message.message_id)
+    time.sleep(
+        1.1 * abortable.wait_timeout / 1000
+    )  # Also wait for the abort pooling time
 
     # Then join on the queue
     stub_broker.join(do_work.queue_name)
@@ -67,6 +69,7 @@ def test_cancel_notifications_are_received(
 
     abortable = Abortable(backend=event_backend)
     stub_broker.add_middleware(abortable)
+    abortable.before_worker_boot(stub_broker, stub_worker)
     test_event = Event()
 
     # And an actor that handles shutdown interrupts
@@ -81,14 +84,15 @@ def test_cancel_notifications_are_received(
             raise
         successes.append(1)
 
-    stub_broker.emit_after("process_boot")
-
     # If I send it a message
     message = do_work.send()
 
     # Then wait
     test_event.wait()
     abort(message.message_id, mode=AbortMode.CANCEL)
+    time.sleep(
+        1.1 * abortable.wait_timeout / 1000
+    )  # Also wait for the abort pooling time
 
     # Then join on the queue
     stub_broker.join(do_work.queue_name)
@@ -107,6 +111,7 @@ def test_not_abortable(
     aborts, successes = [], []
     abortable = Abortable(backend=stub_event_backend)
     stub_broker.add_middleware(abortable)
+    abortable.before_worker_boot(stub_broker, stub_worker)
     test_event = Event()
 
     @dramatiq.actor(abortable=False)
@@ -120,14 +125,15 @@ def test_not_abortable(
             raise
         successes.append(1)
 
-    stub_broker.emit_after("process_boot")
-
     # If I send it a message
     message = not_abortable.send()
 
     # Then wait and signal the task to terminate
     test_event.wait()
     abort(message.message_id)
+    time.sleep(
+        1.1 * abortable.wait_timeout / 1000
+    )  # Also wait for the abort pooling time
 
     # Then join on the queue
     stub_broker.join(not_abortable.queue_name)
@@ -147,18 +153,18 @@ def test_not_abortable(
 )
 def test_abort_before_processing(
     stub_broker: dramatiq.Broker,
+    stub_worker: dramatiq.Worker,
     stub_event_backend: EventBackend,
     mode: AbortMode,
 ) -> None:
     calls = []
     abortable = Abortable(backend=stub_event_backend)
     stub_broker.add_middleware(abortable)
+    abortable.before_worker_boot(stub_broker, stub_worker)
 
     @dramatiq.actor(abortable=True, max_retries=0)
     def do_work() -> None:
         calls.append(1)
-
-    stub_broker.emit_after("process_boot")
 
     # If I send it a message
     message = do_work.send()
@@ -232,6 +238,7 @@ def test_abort_polling(
     sentinel = []
     abortable = Abortable(backend=stub_event_backend)
     stub_broker.add_middleware(abortable)
+    abortable.before_worker_boot(stub_broker, stub_worker)
 
     @dramatiq.actor(abortable=True, max_retries=0)
     def abort_with_delay() -> None:
@@ -246,8 +253,6 @@ def test_abort_polling(
             sentinel.append(False)
             raise
         sentinel.append(True)
-
-    stub_broker.emit_after("process_boot")
 
     # If I send it a message
     message = abort_with_delay.send()
@@ -271,7 +276,7 @@ def test_abort_with_no_middleware(
 
 
 @pytest.mark.skipif(is_gevent_active(), reason="Test behaviour is dependent on gevent.")
-@mock.patch("dramatiq_abort.middleware.raise_thread_exception")
+@mock.patch("dramatiq_abort.abort_manager.raise_thread_exception")
 def test_worker_abort_messages(
     raise_thread_exception: mock.Mock,
     stub_event_backend: EventBackend,
@@ -280,14 +285,31 @@ def test_worker_abort_messages(
     # capture all messages
     caplog.set_level(logging.NOTSET)
 
-    # Given a middleware with an abortable "thread"
+    # Create fake threads
+    thread1 = mock.Mock()
+    thread1.ident = 1
+    thread2 = mock.Mock()
+    thread2.ident = 2
+
+    # Given a middleware with abortable "threads"
     middleware = Abortable(backend=stub_event_backend)
-    middleware.manager.abortables = {"fake_message_id": 1}
+    middleware.manager.abortable_messages |= {  # type: ignore
+        "fake_message_id_overdue": thread1,
+        "fake_message_id_delayed": thread2,
+    }
 
-    # When the message is aborted
-    middleware.manager.abort("fake_message_id")
+    # Add an overdue abort request and a delayed one
+    middleware.manager.abort_requests[thread1] = (
+        "fake_message_id_overdue",
+        time.monotonic() - 10,
+    )
+    middleware.manager.abort_requests[thread2] = (
+        "fake_message_id_delayed",
+        time.monotonic() + 10,
+    )
+    middleware.manager.abort_pending()
 
-    # An abort exception is raised in the thread
+    # An abort exception is raised only in the overdue thread
     raise_thread_exception.assert_has_calls([mock.call(1, Abort)])
 
     # And abort actions are logged
@@ -296,7 +318,7 @@ def test_worker_abort_messages(
         (
             "dramatiq_abort.middleware.Abortable",
             logging.INFO,
-            ("Aborting task. Raising exception in worker thread 1."),
+            (f"Aborting task. Raising exception in worker thread {thread1!r}."),
         )
     ]
 
@@ -312,16 +334,31 @@ def test_gevent_worker_abort_messages(
     # capture all messages
     caplog.set_level(logging.NOTSET)
 
-    # Given a middleware with an abortable "thread"
-    greenlet = gevent.spawn()
+    # Create greenlets
+    greenlet1 = gevent.spawn()
+    greenlet2 = gevent.spawn()
+
+    # Given a middleware with abortable "threads"
     middleware = Abortable(backend=stub_event_backend)
-    middleware.manager.abortables = {"fake_message_id": (1, greenlet)}
+    middleware.manager.abortable_messages |= {  # type: ignore
+        "fake_message_id_overdue": greenlet1,
+        "fake_message_id_delayed": greenlet2,
+    }
 
-    # When the message is aborted
-    middleware.manager.abort("fake_message_id")
+    # Add an overdue abort request and a delayed one
+    middleware.manager.abort_requests[greenlet1] = (
+        "fake_message_id_overdue",
+        time.monotonic() - 10,
+    )
+    middleware.manager.abort_requests[greenlet2] = (
+        "fake_message_id_delayed",
+        time.monotonic() + 10,
+    )
+    middleware.manager.abort_pending()
 
-    # An abort exception is raised in the thread
-    assert isinstance(greenlet.exception, Abort)
+    # An abort exception is raised only in the overdue thread
+    assert isinstance(greenlet1.exception, Abort)
+    assert greenlet2.exception is None
 
     # And abort actions are logged
     assert len(caplog.record_tuples) == 1
@@ -329,6 +366,6 @@ def test_gevent_worker_abort_messages(
         (
             "dramatiq_abort.middleware.Abortable",
             logging.INFO,
-            ("Aborting task. Raising exception in worker thread 1."),
+            (f"Aborting task. Raising exception in worker thread {greenlet1!r}."),
         )
     ]

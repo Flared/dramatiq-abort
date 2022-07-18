@@ -48,11 +48,11 @@ class AbortManager(abc.ABC):
         self.logger = logger or get_logger(__name__, type(self))
 
     @abc.abstractmethod
-    def get_current_thread(self) -> Any:
+    def get_current_thread(self) -> Any:  # pragma: no cover
         raise NotImplementedError
 
     @abc.abstractmethod
-    def do_abort(self, thread: Any) -> None:
+    def do_abort(self, thread: Any) -> None:  # pragma: no cover
         raise NotImplementedError
 
     def add_abortable(self, message_id: str) -> None:

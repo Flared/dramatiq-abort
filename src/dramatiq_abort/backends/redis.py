@@ -46,7 +46,7 @@ class RedisBackend(EventBackend):
         if not event:
             return None
         key, value = self._decode_key(event[0]), self._decode_value(event[1])
-        if not key or not value:
+        if not key or value is None:
             return None
         return Event(key, value)
 
@@ -68,7 +68,7 @@ class RedisBackend(EventBackend):
         return (self.namespace + key).encode()
 
     @staticmethod
-    def _encode_value(value: Optional[Dict[str, Any]]) -> bytes:
+    def _encode_value(value: Dict[str, Any]) -> bytes:
         return json.dumps(value).encode()
 
     def _decode_key(self, key: Optional[bytes]) -> Optional[str]:
