@@ -10,6 +10,7 @@ from _pytest.logging import LogCaptureFixture
 from dramatiq.middleware import threading
 
 from dramatiq_abort import Abort, Abortable, EventBackend, abort, abort_requested
+from dramatiq_abort.abort_manager import AbortRequest
 from dramatiq_abort.middleware import AbortMode, is_gevent_active
 
 not_supported = threading.current_platform not in threading.supported_platforms
@@ -337,13 +338,13 @@ def test_worker_abort_messages(
     }
 
     # Add an overdue abort request and a delayed one
-    middleware.manager.abort_requests[thread1] = (
-        "fake_message_id_overdue",
-        time.monotonic() - 10,
+    middleware.manager.abort_requests[thread1] = AbortRequest(
+        message_id="fake_message_id_overdue",
+        abort_time=time.monotonic() - 10,
     )
-    middleware.manager.abort_requests[thread2] = (
-        "fake_message_id_delayed",
-        time.monotonic() + 10,
+    middleware.manager.abort_requests[thread2] = AbortRequest(
+        message_id="fake_message_id_delayed",
+        abort_time=time.monotonic() + 10,
     )
     middleware.manager.abort_pending()
 
@@ -384,13 +385,13 @@ def test_gevent_worker_abort_messages(
     }
 
     # Add an overdue abort request and a delayed one
-    middleware.manager.abort_requests[greenlet1] = (
-        "fake_message_id_overdue",
-        time.monotonic() - 10,
+    middleware.manager.abort_requests[greenlet1] = AbortRequest(
+        message_id="fake_message_id_overdue",
+        abort_time=time.monotonic() - 10,
     )
-    middleware.manager.abort_requests[greenlet2] = (
-        "fake_message_id_delayed",
-        time.monotonic() + 10,
+    middleware.manager.abort_requests[greenlet2] = AbortRequest(
+        message_id="fake_message_id_delayed",
+        abort_time=time.monotonic() + 10,
     )
     middleware.manager.abort_pending()
 

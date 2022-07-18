@@ -4,7 +4,7 @@ import threading
 import time
 from logging import Logger
 from threading import Thread
-from typing import Any, ContextManager, Dict, List, Optional, Tuple
+from typing import Any, ContextManager, Dict, List, NamedTuple, Optional
 
 from dramatiq.logging import get_logger
 from dramatiq.middleware.threading import Interrupt, raise_thread_exception
@@ -30,6 +30,11 @@ class Abort(Interrupt):
     """
 
 
+class AbortRequest(NamedTuple):
+    message_id: str
+    abort_time: float
+
+
 class AbortManager(abc.ABC):
     """ABC for raising Abort exceptions in threads.
 
@@ -37,18 +42,21 @@ class AbortManager(abc.ABC):
     :type logger: :class:`logging.Logger`
     """
 
-    logger: Any
-    # This lock is used to avoid tasks finishing while they are being aborted
-    lock: ContextManager[Any]
-    abortable_messages: Dict[str, Any]  # message_id -> thread
-    abort_requests: Dict[Any, Tuple[str, float]]  # thread -> (message_id, abort_time)
-
-    @abc.abstractmethod
     def __init__(self, logger: Optional[Logger] = None):
         self.logger = logger or get_logger(__name__, type(self))
+        # message_id -> thread
+        self.abortable_messages: Dict[str, Any] = {}
+        # thread -> (message_id, abort_time)
+        self.abort_requests: Dict[Any, AbortRequest] = {}
 
     @abc.abstractmethod
     def get_current_thread(self) -> Any:  # pragma: no cover
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def lock(self) -> ContextManager[Any]:  # pragma: no cover
+        # This lock is used to avoid tasks finishing while they are being aborted
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -62,8 +70,8 @@ class AbortManager(abc.ABC):
         with self.lock:
             thread = self.abortable_messages.pop(message_id, None)
             if thread:
-                saved_message_id, _ = self.abort_requests.pop(thread, (None, None))
-                assert not saved_message_id or message_id == saved_message_id
+                abort_request = self.abort_requests.pop(thread, None)
+                assert not abort_request or message_id == abort_request.message_id
 
     def get_abortables(self) -> List[str]:
         return list(self.abortable_messages.keys())
@@ -73,8 +81,10 @@ class AbortManager(abc.ABC):
             thread = self.abortable_messages.get(message_id, None)
         else:
             thread = self.get_current_thread()
-        _, abort_time = self.abort_requests.get(thread, (None, None))
-        return abort_time
+        abort_request = self.abort_requests.get(thread, None)
+        if abort_request:
+            return abort_request.abort_time
+        return None
 
     def add_abort_request(self, message_id: str, abort_timeout: int = 0) -> None:
         with self.lock:
@@ -82,9 +92,9 @@ class AbortManager(abc.ABC):
             if thread is None:  # pragma: no cover
                 # If the task finished before we signaled it to abort
                 return
-            self.abort_requests[thread] = (
-                message_id,
-                time.monotonic() + abort_timeout / 1000,
+            self.abort_requests[thread] = AbortRequest(
+                message_id=message_id,
+                abort_time=time.monotonic() + abort_timeout / 1000,
             )
 
     def abort_pending(self) -> None:
@@ -96,8 +106,11 @@ class AbortManager(abc.ABC):
             ]
 
             for thread in toabort:
-                message_id, abort_time = self.abort_requests.pop(thread, ("", None))
-                saved_thread = self.abortable_messages.pop(message_id, None)
+                abort_request = self.abort_requests.pop(thread, None)
+                assert abort_request
+                saved_thread = self.abortable_messages.pop(
+                    abort_request.message_id, None
+                )
                 assert saved_thread == thread
 
                 self.logger.info(
@@ -111,9 +124,11 @@ class CtypesAbortManager(AbortManager):
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        self.lock = threading.Lock()
-        self.abortable_messages: Dict[str, Thread] = {}
-        self.abort_requests: Dict[Thread, Tuple[str, float]] = {}
+        self._lock = threading.Lock()
+
+    @property
+    def lock(self) -> threading.Lock:
+        return self._lock
 
     def get_current_thread(self) -> Thread:
         return threading.current_thread()
@@ -131,9 +146,11 @@ if is_gevent_active():
         def __init__(self, *args: Any, **kwargs: Any):
             super().__init__(*args, **kwargs)
             # No lock is needed for gevent
-            self.lock = contextlib.nullcontext()
-            self.abortable_messages: Dict[str, Greenlet] = {}
-            self.abort_requests: Dict[Greenlet, Tuple[str, float]] = {}
+            self._lock = contextlib.nullcontext()
+
+        @property
+        def lock(self) -> contextlib.nullcontext[None]:
+            return self._lock
 
         def get_current_thread(self) -> Greenlet:
             return getcurrent()
