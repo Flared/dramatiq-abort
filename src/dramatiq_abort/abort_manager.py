@@ -38,9 +38,10 @@ class AbortManager(abc.ABC):
     """
 
     logger: Any
+    # This lock is used to avoid tasks finishing while they are being aborted
     lock: ContextManager[Any]
-    abortable_messages: Dict[str, Any]
-    abort_requests: Dict[Any, Tuple[str, float]]
+    abortable_messages: Dict[str, Any]  # message_id -> thread
+    abort_requests: Dict[Any, Tuple[str, float]]  # thread -> (message_id, abort_time)
 
     @abc.abstractmethod
     def __init__(self, logger: Optional[Logger] = None):
@@ -110,7 +111,6 @@ class CtypesAbortManager(AbortManager):
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        # This lock is used to avoid a race between the monitor and a task cleaning up.
         self.lock = threading.Lock()
         self.abortable_messages: Dict[str, Thread] = {}
         self.abort_requests: Dict[Thread, Tuple[str, float]] = {}

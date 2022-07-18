@@ -3,6 +3,8 @@ from typing import Any, Dict, Iterable, NamedTuple, Optional
 
 
 class Event(NamedTuple):
+    """Events are composed of an identifying key and associated parameters."""
+
     key: str
     params: Dict[str, Any]
 
@@ -14,7 +16,7 @@ class EventBackend(abc.ABC):
     def wait_many(
         self, keys: Iterable[str], timeout: int
     ) -> Optional[Event]:  # pragma: no cover
-        """Wait for either one of the event in ``keys`` to be signaled or
+        """Wait for either one of the events in ``keys`` to be signaled or
         ``timeout`` milliseconds to elapsed.
 
         Returns the event that signaled or ``None`` if no event was signaled.
@@ -32,9 +34,9 @@ class EventBackend(abc.ABC):
         """Check if an event has been signaled.
 
         This function should not block and wait for an event to signal.
-        Returns ``True`` if the event was signaled, ``False`` otherwise.
+        Returns the event if it was signaled, ``None`` otherwise.
         A backend might not be idempotent and once a key has signaled,
-        subsequent call returns ``False``.
+        subsequent calls might return ``None``.
 
         :param key: Event to check for signal.
         """

@@ -50,9 +50,10 @@ Abort a task
 When an actor is sent to a worker, a message instance is returned with the
 message id. This message id can be kept somewhere so it can be used to abort
 the enqueued or running task. :any:`abort` can then be used to signal the task
-termination using the message id in two mode. The `cancel` mode only abort the
-enqueued but pending task. Otherwise, `abort` mode will abort the pending or
-running task.
+termination using the message id in two modes:
+
+- `cancel` mode only aborts the enqueued but pending task.
+- `abort` mode will abort the pending or running task.
 
 .. code-block::
 
@@ -66,10 +67,35 @@ running task.
   abort(message_id)
   abort(message_id, mode=AbortMode.CANCEL)
 
+Gracefully aborting tasks
+-------------------------
+
+When the abort mode is set to :any:`abort`, an optional timeout can be provided to allow
+for tasks to finish before being aborted.
+Running tasks can check if an abort is requested by calling :any:`abort_requested`,
+which returns the number of milliseconds until the task is aborted or ``None`` if no
+abort is requested.
+
+.. code-block::
+
+  @dramatiq.actor
+  def my_long_running_task():
+    while True:
+      sleep(0.1) # do work
+      if abort_requested():
+        break # stop working
+
+  message = my_long_running_task.send()
+
+  # signals the task that an abort is requested, allowing 2 seconds for it to finish
+  abort(message.message_id, mode=AbortMode.ABORT, abort_timeout=2000)
+
 Abort a task using a custom abort_ttl value
 -------------------------------------------
 
-By default, abort has a limited window of 90,000 milliseconds. This means a worker will skip a task only if the task was aborted up to 90 seconds ago. In case of longer delay in the task processing this value can be overridden.
+By default, abort has a limited window of 90,000 milliseconds. This means a worker will
+skip a task only if the task was aborted up to 90 seconds ago. In case of longer delay
+in the task processing this value can be overridden.
 
 .. code-block::
 
@@ -88,9 +114,13 @@ API
 
 .. autofunction:: abort
 
+.. autofunction:: abort_requested
+
 .. autoclass:: Abortable
 
 .. autoclass:: Abort
+
+.. autoclass:: Event
 
 .. autoclass:: EventBackend
    :members:

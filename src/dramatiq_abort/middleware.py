@@ -201,9 +201,14 @@ def abort(
     :param abort_ttl: Change default abort TTL value, optional argument. If set to
         ``None`` default value from :class:`Abortable` is used.
 
-    :param mode: "AbortMode.ABORT" or "AbortMode.CANCEL".In "cancel" mode,
+    :param mode: "AbortMode.ABORT" or "AbortMode.CANCEL". In "cancel" mode,
         only pending message will be aborted,
         running message will also be aborted additionally in "abort" mode.
+
+    :param abort_timeout: Only applicable when mode is "AbortMode.ABORT".
+        If set, signals the running message that an abort is requested and waits for the
+        given number of milliseconds for it to finish before aborting it.
+        Messages can check if an abort is requested by calling :meth:`abort_requested`.
     """
     if not middleware:
         middleware = _get_abortable_from_broker()
@@ -215,6 +220,15 @@ def abort_requested(
     message_id: Optional[str] = None,
     middleware: Optional[Abortable] = None,
 ) -> Optional[float]:
+    """Check if there is an abort request for the current message. Returns the number of
+    milliseconds until the message is aborted via an exception or ``None`` if no abort
+    is requested.
+
+    :param message_id: If provided, checks for a abort request for the given
+        ``message_id`` instead of the current message.
+
+    :param middleware: As in :meth:`abort`.
+    """
     if not middleware:
         middleware = _get_abortable_from_broker()
     return middleware.get_abort_request(message_id)

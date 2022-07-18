@@ -12,6 +12,7 @@ class RedisBackend(EventBackend):
     """An event backend for Redis_.
 
     :param client: The `Redis client`_ instance.
+    :param namespace: Namespace to prefix keys with.
 
     .. _redis: https://redis.io
     .. _`redis client`: https://pypi.org/project/redis/
@@ -24,6 +25,7 @@ class RedisBackend(EventBackend):
     @classmethod
     def from_url(cls, url: str, *args: Any, **kwargs: Any) -> "RedisBackend":
         """Initialize the backend using an URL to the Redis server.
+        Any extra parameters are passed on to the default constructor.
 
         :param url: Redis server URL.
         """
