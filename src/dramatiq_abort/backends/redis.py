@@ -46,7 +46,7 @@ class RedisBackend(EventBackend):
         if not event:
             return None
         key, value = self._decode_key(event[0]), self._decode_value(event[1])
-        if not key or value is None:
+        if value is None:
             return None
         return Event(key, value)
 
@@ -69,11 +69,11 @@ class RedisBackend(EventBackend):
 
     @staticmethod
     def _encode_value(value: Dict[str, Any]) -> bytes:
+        if not isinstance(value, dict):  # pragma: no cover
+            raise TypeError("Must provide a dict in params")
         return json.dumps(value).encode()
 
-    def _decode_key(self, key: Optional[bytes]) -> Optional[str]:
-        if not key:
-            return None
+    def _decode_key(self, key: bytes) -> str:
         return key.decode()[len(self.namespace) :]
 
     @staticmethod

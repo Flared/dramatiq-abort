@@ -9,7 +9,7 @@ import pytest
 from _pytest.logging import LogCaptureFixture
 from dramatiq.middleware import threading
 
-from dramatiq_abort import Abort, Abortable, EventBackend, abort
+from dramatiq_abort import Abort, Abortable, EventBackend, abort, abort_requested
 from dramatiq_abort.middleware import AbortMode, is_gevent_active
 
 not_supported = threading.current_platform not in threading.supported_platforms
@@ -34,7 +34,7 @@ def test_abort_notifications_are_received(
     def do_work() -> None:
         try:
             test_event.set()
-            for _ in range(10):
+            for _ in range(11):  # Total has to be greater than abortable.wait_timeout
                 time.sleep(0.1)
         except Abort:
             aborts.append(1)
@@ -47,9 +47,6 @@ def test_abort_notifications_are_received(
     # Then wait and signal the task to terminate
     test_event.wait()
     abort(message.message_id)
-    time.sleep(
-        1.1 * abortable.wait_timeout / 1000
-    )  # Also wait for the abort pooling time
 
     # Then join on the queue
     stub_broker.join(do_work.queue_name)
@@ -77,7 +74,7 @@ def test_cancel_notifications_are_received(
     def do_work() -> None:
         try:
             test_event.set()
-            for _ in range(10):
+            for _ in range(11):  # Total has to be greater than abortable.wait_timeout
                 time.sleep(0.1)
         except Abort:
             aborts.append(1)
@@ -90,15 +87,59 @@ def test_cancel_notifications_are_received(
     # Then wait
     test_event.wait()
     abort(message.message_id, mode=AbortMode.CANCEL)
-    time.sleep(
-        1.1 * abortable.wait_timeout / 1000
-    )  # Also wait for the abort pooling time
 
     # Then join on the queue
     stub_broker.join(do_work.queue_name)
     stub_worker.join()
 
     # Task will finished, the cancel won't take any effect.
+    assert successes
+    assert not aborts
+
+
+@pytest.mark.skipif(not_supported, reason="Threading not supported on this platform.")
+def test_abort_with_timeout(
+    stub_broker: dramatiq.Broker,
+    stub_worker: dramatiq.Worker,
+    event_backend: EventBackend,
+) -> None:
+    # Given that I have a database
+    aborts, successes, cleanups = [], [], []
+
+    abortable = Abortable(backend=event_backend)
+    stub_broker.add_middleware(abortable)
+    abortable.before_worker_boot(stub_broker, stub_worker)
+    test_event = Event()
+
+    # And an actor that checks for abort requests
+    @dramatiq.actor(abortable=True, max_retries=0)
+    def do_work() -> None:
+        try:
+            test_event.set()
+            for _ in range(11):  # Total has to be greater than abortable.wait_timeout
+                remaining_time = abort_requested()
+                if remaining_time:
+                    cleanups.append(remaining_time)
+                    break
+                time.sleep(0.1)
+        except Abort:
+            aborts.append(1)
+            raise
+        successes.append(1)
+
+    # If I send it a message
+    message = do_work.send()
+
+    # Then wait and signal the task to terminate, allowing for a timeout
+    test_event.wait()
+    abort(message.message_id, abort_timeout=1000)
+
+    # Then join on the queue
+    stub_broker.join(do_work.queue_name)
+    stub_worker.join()
+
+    # It should be able to finish cleanly
+    assert cleanups[0] < 1000
     assert successes
     assert not aborts
 
@@ -118,7 +159,7 @@ def test_not_abortable(
     def not_abortable() -> None:
         try:
             test_event.set()
-            for _ in range(10):
+            for _ in range(11):  # Total has to be greater than abortable.wait_timeout
                 time.sleep(0.1)
         except Abort:
             aborts.append(1)
@@ -131,9 +172,6 @@ def test_not_abortable(
     # Then wait and signal the task to terminate
     test_event.wait()
     abort(message.message_id)
-    time.sleep(
-        1.1 * abortable.wait_timeout / 1000
-    )  # Also wait for the abort pooling time
 
     # Then join on the queue
     stub_broker.join(not_abortable.queue_name)

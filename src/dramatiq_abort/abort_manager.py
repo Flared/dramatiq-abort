@@ -69,7 +69,7 @@ class AbortManager(abc.ABC):
         return list(self.abortable_messages.keys())
 
     def get_abort_request(self, message_id: Optional[str] = None) -> Optional[float]:
-        if message_id:
+        if message_id:  # pragma: no cover
             thread = self.abortable_messages.get(message_id, None)
         else:
             thread = self.get_current_thread()
@@ -79,7 +79,7 @@ class AbortManager(abc.ABC):
     def add_abort_request(self, message_id: str, abort_timeout: int = 0) -> None:
         with self.lock:
             thread = self.abortable_messages.get(message_id, None)
-            if thread is None:
+            if thread is None:  # pragma: no cover
                 # If the task finished before we signaled it to abort
                 return
             self.abort_requests[thread] = (
