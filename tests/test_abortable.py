@@ -332,10 +332,12 @@ def test_worker_abort_messages(
 
     # Given a middleware with abortable "threads"
     middleware = Abortable(backend=stub_event_backend)
-    middleware.manager.abortable_messages.update({  # type: ignore
-        "fake_message_id_overdue": thread1,
-        "fake_message_id_delayed": thread2,
-    })
+    middleware.manager.abortable_messages.update(
+        {
+            "fake_message_id_overdue": thread1,
+            "fake_message_id_delayed": thread2,
+        }
+    )
 
     # Add an overdue abort request and a delayed one
     middleware.manager.abort_requests[thread1] = AbortRequest(
@@ -379,10 +381,12 @@ def test_gevent_worker_abort_messages(
 
     # Given a middleware with abortable "threads"
     middleware = Abortable(backend=stub_event_backend)
-    middleware.manager.abortable_messages.update({  # type: ignore
-        "fake_message_id_overdue": greenlet1,
-        "fake_message_id_delayed": greenlet2,
-    })
+    middleware.manager.abortable_messages.update(
+        {
+            "fake_message_id_overdue": greenlet1,
+            "fake_message_id_delayed": greenlet2,
+        }
+    )
 
     # Add an overdue abort request and a delayed one
     middleware.manager.abort_requests[greenlet1] = AbortRequest(

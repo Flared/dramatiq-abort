@@ -62,7 +62,7 @@ extra_dependencies["dev"] = extra_dependencies["all"] + [
     # Testing
     "pytest",
     "pytest-cov",
-    "tox",
+    "tox>=3.14.0",
     # Docs
     "sphinx",
     "sphinx-autodoc-typehints",
@@ -88,7 +88,6 @@ setup(
     extras_require=extra_dependencies,
     zip_safe=False,
     classifiers=[
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
