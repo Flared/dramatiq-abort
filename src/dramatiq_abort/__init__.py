@@ -1,4 +1,4 @@
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 from .abort_manager import Abort
 from .backend import Event, EventBackend
