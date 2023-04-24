@@ -9,6 +9,7 @@ except ImportError:  # pragma: no cover
         "RedisBackend is not available.  Run `pip install dramatiq[redis]` "
         "to add support for that backend.",
         ImportWarning,
+        stacklevel=2,
     )
 
 
