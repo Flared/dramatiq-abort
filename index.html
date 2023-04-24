@@ -1,10 +1,10 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
     <title>dramatiq-abort &#8212; dramatiq-abort 0.1b2 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
@@ -12,7 +12,9 @@
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
    
@@ -32,7 +34,7 @@
           <div class="body" role="main">
             
   <section id="dramatiq-abort">
-<h1>dramatiq-abort<a class="headerlink" href="#dramatiq-abort" title="Permalink to this headline">¶</a></h1>
+<h1>dramatiq-abort<a class="headerlink" href="#dramatiq-abort" title="Permalink to this heading">¶</a></h1>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference external" href="http://packages.python.org/dramatiq-abort/">Documentation</a></li>
@@ -45,14 +47,14 @@ running actors.</p>
 dramatiq client using a distributed event backend. At the moment, only a Redis
 backend exists, but the API provide a simple interface to add more.</p>
 <section id="installing-dramatiq-abort">
-<h2>Installing dramatiq-abort<a class="headerlink" href="#installing-dramatiq-abort" title="Permalink to this headline">¶</a></h2>
+<h2>Installing dramatiq-abort<a class="headerlink" href="#installing-dramatiq-abort" title="Permalink to this heading">¶</a></h2>
 <p>Install with <strong>pip</strong>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">dramatiq</span><span class="o">-</span><span class="n">abort</span><span class="p">[</span><span class="n">redis</span><span class="p">]</span>
 </pre></div>
 </div>
 </section>
 <section id="configuring-dramatiq-abort">
-<h2>Configuring dramatiq-abort<a class="headerlink" href="#configuring-dramatiq-abort" title="Permalink to this headline">¶</a></h2>
+<h2>Configuring dramatiq-abort<a class="headerlink" href="#configuring-dramatiq-abort" title="Permalink to this heading">¶</a></h2>
 <p><strong>dramatiq-abort</strong> is configured by creating a backend object and adding the
 <code class="docutils literal notranslate"><span class="pre">Abortable</span></code> middleware to the <strong>dramatiq</strong> <code class="docutils literal notranslate"><span class="pre">Broker</span></code> instance.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">dramatiq</span> <span class="kn">import</span> <span class="n">get_broker</span>
@@ -65,7 +67,7 @@ backend exists, but the API provide a simple interface to add more.</p>
 </div>
 </section>
 <section id="abort-a-task">
-<h2>Abort a task<a class="headerlink" href="#abort-a-task" title="Permalink to this headline">¶</a></h2>
+<h2>Abort a task<a class="headerlink" href="#abort-a-task" title="Permalink to this heading">¶</a></h2>
 <p>When an actor is sent to a worker, a message instance is returned with the
 message id. This message id can be kept somewhere so it can be used to abort
 the enqueued or running task. <a class="reference internal" href="#dramatiq_abort.abort" title="dramatiq_abort.abort"><code class="xref any py py-func docutils literal notranslate"><span class="pre">abort</span></code></a> can then be used to signal the task
@@ -87,7 +89,7 @@ termination using the message id in two modes:</p>
 </div>
 </section>
 <section id="gracefully-aborting-tasks">
-<h2>Gracefully aborting tasks<a class="headerlink" href="#gracefully-aborting-tasks" title="Permalink to this headline">¶</a></h2>
+<h2>Gracefully aborting tasks<a class="headerlink" href="#gracefully-aborting-tasks" title="Permalink to this heading">¶</a></h2>
 <p>When the abort mode is set to <a class="reference internal" href="#dramatiq_abort.abort" title="dramatiq_abort.abort"><code class="xref any py py-func docutils literal notranslate"><span class="pre">abort</span></code></a>, an optional timeout can be provided to allow
 for tasks to finish before being aborted.
 Running tasks can check if an abort is requested by calling <a class="reference internal" href="#dramatiq_abort.abort_requested" title="dramatiq_abort.abort_requested"><code class="xref any py py-func docutils literal notranslate"><span class="pre">abort_requested</span></code></a>,
@@ -108,7 +110,7 @@ abort is requested.</p>
 </div>
 </section>
 <section id="abort-a-task-using-a-custom-abort-ttl-value">
-<h2>Abort a task using a custom abort_ttl value<a class="headerlink" href="#abort-a-task-using-a-custom-abort-ttl-value" title="Permalink to this headline">¶</a></h2>
+<h2>Abort a task using a custom abort_ttl value<a class="headerlink" href="#abort-a-task-using-a-custom-abort-ttl-value" title="Permalink to this heading">¶</a></h2>
 <p>By default, abort has a limited window of 90,000 milliseconds. This means a worker will
 skip a task only if the task was aborted up to 90 seconds ago. In case of longer delay
 in the task processing this value can be overridden.</p>
@@ -123,13 +125,13 @@ in the task processing this value can be overridden.</p>
 </div>
 </section>
 <section id="module-dramatiq_abort">
-<span id="api"></span><h2>API<a class="headerlink" href="#module-dramatiq_abort" title="Permalink to this headline">¶</a></h2>
+<span id="api"></span><h2>API<a class="headerlink" href="#module-dramatiq_abort" title="Permalink to this heading">¶</a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="dramatiq_abort.abort">
 <span class="sig-prename descclassname"><span class="pre">dramatiq_abort.</span></span><span class="sig-name descname"><span class="pre">abort</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">middleware</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abort_ttl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">AbortMode.ABORT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abort_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dramatiq_abort.abort" title="Permalink to this definition">¶</a></dt>
 <dd><p>Abort a pending or running message given its <code class="docutils literal notranslate"><span class="pre">message_id</span></code>.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>message_id</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – Message to abort. Use the return value of <code class="docutils literal notranslate"><span class="pre">actor.send</span></code>
 or <code class="docutils literal notranslate"><span class="pre">actor.send_with_options</span></code> to then use its <code class="docutils literal notranslate"><span class="pre">.message_id</span></code> attribute.</p></li>
@@ -149,7 +151,7 @@ given number of milliseconds for it to finish before aborting it.
 Messages can check if an abort is requested by calling <a class="reference internal" href="#dramatiq_abort.abort_requested" title="dramatiq_abort.abort_requested"><code class="xref py py-meth docutils literal notranslate"><span class="pre">abort_requested()</span></code></a>.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type</dt>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></p>
 </dd>
 </dl>
@@ -162,14 +164,14 @@ Messages can check if an abort is requested by calling <a class="reference inter
 milliseconds until the message is aborted via an exception or <code class="docutils literal notranslate"><span class="pre">None</span></code> if no abort
 is requested.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>message_id</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]) – If provided, checks for a abort request for the given
 <code class="docutils literal notranslate"><span class="pre">message_id</span></code> instead of the current message.</p></li>
 <li><p><strong>middleware</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference internal" href="#dramatiq_abort.Abortable" title="dramatiq_abort.middleware.Abortable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Abortable</span></code></a>]) – As in <a class="reference internal" href="#dramatiq_abort.abort" title="dramatiq_abort.abort"><code class="xref py py-meth docutils literal notranslate"><span class="pre">abort()</span></code></a>.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type</dt>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</p>
 </dd>
 </dl>
@@ -189,7 +191,7 @@ that runs the actor.  This means that the exception will only get
 called the next time that thread acquires the GIL. Concretely,
 this means that this middleware can’t cancel system calls.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>backend</strong> (<a class="reference internal" href="#dramatiq_abort.EventBackend" title="dramatiq_abort.EventBackend"><code class="xref py py-class docutils literal notranslate"><span class="pre">EventBackend</span></code></a>) – Event backend used to signal termination from a broker to
 the workers. See <code class="xref py py-class docutils literal notranslate"><span class="pre">RedisBackend</span></code>.</p></li>
@@ -225,7 +227,7 @@ processes have been signaled to abort.</p>
 <p>Once notified, a call to <a class="reference internal" href="#dramatiq_abort.EventBackend.poll" title="dramatiq_abort.EventBackend.poll"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">poll</span></code></a> or <a class="reference internal" href="#dramatiq_abort.EventBackend.wait_many" title="dramatiq_abort.EventBackend.wait_many"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">wait_many</span></code></a> with this event should
 result in a positive result.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>keys</strong> – Events to signal.</p></li>
 <li><p><strong>ttl</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Time for the signal to live. The value should be large
@@ -235,7 +237,7 @@ being garbage collected.</p></li>
 <li><p><strong>events</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<a class="reference internal" href="#dramatiq_abort.Event" title="dramatiq_abort.backend.Event"><code class="xref py py-class docutils literal notranslate"><span class="pre">Event</span></code></a>]) – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type</dt>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></p>
 </dd>
 </dl>
@@ -250,10 +252,10 @@ Returns the event if it was signaled, <code class="docutils literal notranslate"
 A backend might not be idempotent and once a key has signaled,
 subsequent calls might return <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>key</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – Event to check for signal.</p>
 </dd>
-<dt class="field-even">Return type</dt>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference internal" href="#dramatiq_abort.Event" title="dramatiq_abort.backend.Event"><code class="xref py py-class docutils literal notranslate"><span class="pre">Event</span></code></a>]</p>
 </dd>
 </dl>
@@ -268,13 +270,13 @@ subsequent calls might return <code class="docutils literal notranslate"><span c
 A backend might not be idempotent and once a key has signaled,
 subsequent calls might wait indefinitely.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>keys</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]) – List of event to wait for.</p></li>
 <li><p><strong>timeout</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Maximum amount of milliseconds to wait.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type</dt>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference internal" href="#dramatiq_abort.Event" title="dramatiq_abort.backend.Event"><code class="xref py py-class docutils literal notranslate"><span class="pre">Event</span></code></a>]</p>
 </dd>
 </dl>
@@ -287,7 +289,7 @@ subsequent calls might wait indefinitely.</p>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dramatiq_abort.backends.</span></span><span class="sig-name descname"><span class="pre">RedisBackend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'dramatiq:aborts:'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dramatiq_abort.backends.RedisBackend" title="Permalink to this definition">¶</a></dt>
 <dd><p>An event backend for <a class="reference external" href="https://redis.io">Redis</a>.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>client</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>) – The <a class="reference external" href="https://pypi.org/project/redis/">Redis client</a> instance.</p></li>
 <li><p><strong>namespace</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – Namespace to prefix keys with.</p></li>
@@ -300,14 +302,14 @@ subsequent calls might wait indefinitely.</p>
 <dd><p>Initialize the backend using an URL to the Redis server.
 Any extra parameters are passed on to the default constructor.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>url</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – Redis server URL.</p></li>
 <li><p><strong>args</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>) – </p></li>
 <li><p><strong>kwargs</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>) – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type</dt>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="#dramatiq_abort.backends.RedisBackend" title="dramatiq_abort.backends.redis.RedisBackend"><code class="xref py py-class docutils literal notranslate"><span class="pre">RedisBackend</span></code></a></p>
 </dd>
 </dl>
@@ -363,7 +365,7 @@ Any extra parameters are passed on to the default constructor.</p>
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -380,8 +382,8 @@ Any extra parameters are passed on to the default constructor.</p>
       &copy;2019, Flare Systems Inc..
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.3.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
       |
       <a href="_sources/index.rst.txt"
