@@ -113,6 +113,7 @@ When a worker is waiting on a subprocess, the :any:`Abort` exception will only b
 AFTER the subprocess has been completed. The following example is one way to deal with this:
 
 .. code-block::
+
   @dramatiq.actor
   def my_subprocess():
     with subprocess.Popen(*args, **kwargs) as process:
