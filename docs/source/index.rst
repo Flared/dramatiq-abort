@@ -107,6 +107,26 @@ in the task processing this value can be overridden.
 
   abort(message_id, abort_ttl=2*60*60*1000)
 
+Abort a task running a subprocess
+---------------------------------
+When a worker is waiting on a subprocess, the :any:`Abort` exception will only be raised 
+AFTER the subprocess has been completed. The following example is one way to deal with this:
+
+.. code-block::
+  @dramatiq.actor
+  def my_subprocess():
+    with subprocess.Popen(*args, **kwargs) as process:
+      ret = None
+      try:
+        while ret is None:
+          try:
+            ret = process.wait(timeout=1)  # Note: same principle for `process.communicate()`
+          except subprocess.TimeoutExpired:
+            pass
+      except Abort:
+        process.signal(signal.SIGINT)  # or on windows: `os.kill(process.pid, signal.SIGINT)`
+        process.wait()
+
 API
 ---
 
