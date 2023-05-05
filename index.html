@@ -128,6 +128,21 @@ in the task processing this value can be overridden.</p>
 <h2>Abort a task running a subprocess<a class="headerlink" href="#abort-a-task-running-a-subprocess" title="Permalink to this heading">¶</a></h2>
 <p>When a worker is waiting on a subprocess, the <a class="reference internal" href="#dramatiq_abort.Abort" title="dramatiq_abort.Abort"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Abort</span></code></a> exception will only be raised
 AFTER the subprocess has been completed. The following example is one way to deal with this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@dramatiq</span><span class="o">.</span><span class="n">actor</span>
+<span class="k">def</span> <span class="nf">my_subprocess</span><span class="p">():</span>
+  <span class="k">with</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">as</span> <span class="n">process</span><span class="p">:</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="k">while</span> <span class="n">ret</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+          <span class="n">ret</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># Note: same principle for `process.communicate()`</span>
+        <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">TimeoutExpired</span><span class="p">:</span>
+          <span class="k">pass</span>
+    <span class="k">except</span> <span class="n">Abort</span><span class="p">:</span>
+      <span class="n">process</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">)</span>  <span class="c1"># or on windows: `os.kill(process.pid, signal.SIGINT)`</span>
+      <span class="n">process</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+</pre></div>
+</div>
 </section>
 <section id="module-dramatiq_abort">
 <span id="api"></span><h2>API<a class="headerlink" href="#module-dramatiq_abort" title="Permalink to this heading">¶</a></h2>
