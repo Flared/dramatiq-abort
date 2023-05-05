@@ -124,6 +124,11 @@ in the task processing this value can be overridden.</p>
 </pre></div>
 </div>
 </section>
+<section id="abort-a-task-running-a-subprocess">
+<h2>Abort a task running a subprocess<a class="headerlink" href="#abort-a-task-running-a-subprocess" title="Permalink to this heading">¶</a></h2>
+<p>When a worker is waiting on a subprocess, the <a class="reference internal" href="#dramatiq_abort.Abort" title="dramatiq_abort.Abort"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Abort</span></code></a> exception will only be raised
+AFTER the subprocess has been completed. The following example is one way to deal with this:</p>
+</section>
 <section id="module-dramatiq_abort">
 <span id="api"></span><h2>API<a class="headerlink" href="#module-dramatiq_abort" title="Permalink to this heading">¶</a></h2>
 <dl class="py function">
