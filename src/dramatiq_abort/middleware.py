@@ -158,8 +158,9 @@ class Abortable(Middleware):
                 self.manager.abort_pending()
             except Exception:  # pragma: no cover
                 self.logger.exception(
-                    "Unhandled error while running the time limit handler."
+                    "Unhandled error while running the abort watcher."
                 )
+                time.sleep(self.wait_timeout / 1000)
 
     @staticmethod
     def id_to_key(message_id: str, mode: AbortMode = AbortMode.ABORT) -> str:
