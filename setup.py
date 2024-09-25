@@ -46,7 +46,7 @@ dependencies = [
 
 extra_dependencies = {
     "gevent": ["gevent>=1.1"],
-    "redis": ["redis>=2.0,<5.0"],
+    "redis": ["redis>=2.0,<6.0"],
 }
 
 extra_dependencies["all"] = list(set(sum(extra_dependencies.values(), [])))
