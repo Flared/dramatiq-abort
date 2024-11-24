@@ -109,7 +109,7 @@ class Abortable(Middleware):
         message: dramatiq.Message,
         *,
         result: Optional[Any] = None,
-        exception: Optional[BaseException] = None
+        exception: Optional[BaseException] = None,
     ) -> None:
         self.manager.remove_abortable(message.message_id)
 
