@@ -1,7 +1,9 @@
 import logging
 import time
+from random import choices
+from string import ascii_lowercase
 from threading import Event
-from typing import Optional
+from typing import Any, Optional
 from unittest import mock
 
 import dramatiq
@@ -253,8 +255,9 @@ def test_abortable_configs(
     is_abortable: bool,
 ) -> None:
     abortable = Abortable(backend=stub_event_backend, abortable=middleware_abortable)
+    actor_name = str.join("", choices(ascii_lowercase, k=6))
 
-    message = dramatiq.Message(
+    message: dramatiq.Message[Any] = dramatiq.Message(
         queue_name="some-queue",
         actor_name="some-actor",
         args=(),
@@ -262,11 +265,11 @@ def test_abortable_configs(
         options={"abortable": message_abortable},
     )
 
-    @dramatiq.actor(abortable=actor_abortable)
-    def actor() -> None:
+    @dramatiq.actor(abortable=actor_abortable, actor_name=actor_name)
+    def foo() -> None:
         pass
 
-    assert abortable.is_abortable(actor, message) == is_abortable
+    assert abortable.is_abortable(foo, message) == is_abortable
 
 
 def test_abort_polling(

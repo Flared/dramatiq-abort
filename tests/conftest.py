@@ -1,7 +1,7 @@
 import logging
 import os
 import random
-from typing import Any, Dict
+from typing import Any, Dict, Generator
 
 import dramatiq
 import pytest
@@ -31,7 +31,7 @@ def check_redis(client: Any) -> None:
 
 
 @pytest.fixture()
-def stub_broker() -> dramatiq.Broker:
+def stub_broker() -> Generator[dramatiq.Broker, None, None]:
     broker = StubBroker()
     broker.emit_after("process_boot")
     dramatiq.set_broker(broker)
@@ -41,7 +41,7 @@ def stub_broker() -> dramatiq.Broker:
 
 
 @pytest.fixture()
-def stub_worker(stub_broker: dramatiq.Broker) -> dramatiq.Worker:
+def stub_worker(stub_broker: dramatiq.Broker) -> Generator[dramatiq.Worker, None, None]:
     worker = Worker(stub_broker, worker_timeout=100, worker_threads=32)
     worker.start()
     yield worker

@@ -72,7 +72,9 @@ class Abortable(Middleware):
     def actor_options(self) -> Set[str]:
         return {"abortable"}
 
-    def is_abortable(self, actor: dramatiq.Actor, message: dramatiq.Message) -> bool:
+    def is_abortable(
+        self, actor: dramatiq.Actor[Any, Any], message: dramatiq.Message[Any]
+    ) -> bool:
         abortable = message.options.get("abortable")
         if abortable is None:
             abortable = actor.options.get("abortable")
@@ -91,7 +93,7 @@ class Abortable(Middleware):
             warnings.warn(msg % current_platform, category=RuntimeWarning, stacklevel=2)
 
     def before_process_message(
-        self, broker: dramatiq.Broker, message: dramatiq.Message
+        self, broker: dramatiq.Broker, message: dramatiq.Message[Any]
     ) -> None:
         actor = broker.get_actor(message.actor_name)
         if not self.is_abortable(actor, message):
@@ -106,10 +108,10 @@ class Abortable(Middleware):
     def after_process_message(
         self,
         broker: dramatiq.Broker,
-        message: dramatiq.Message,
+        message: dramatiq.Message[Any],
         *,
         result: Optional[Any] = None,
-        exception: Optional[BaseException] = None
+        exception: Optional[BaseException] = None,
     ) -> None:
         self.manager.remove_abortable(message.message_id)
 
