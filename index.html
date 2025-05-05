@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title>dramatiq-abort &#8212; dramatiq-abort 0.1b2 documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
-    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
     <script src="_static/documentation_options.js?v=1563e531"></script>
     <script src="_static/doctools.js?v=9bcbadda"></script>
@@ -55,8 +55,8 @@ backend exists, but the API provide a simple interface to add more.</p>
 <h2>Configuring dramatiq-abort<a class="headerlink" href="#configuring-dramatiq-abort" title="Link to this heading">¶</a></h2>
 <p><strong>dramatiq-abort</strong> is configured by creating a backend object and adding the
 <code class="docutils literal notranslate"><span class="pre">Abortable</span></code> middleware to the <strong>dramatiq</strong> <code class="docutils literal notranslate"><span class="pre">Broker</span></code> instance.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">dramatiq</span> <span class="kn">import</span> <span class="n">get_broker</span>
-<span class="kn">from</span> <span class="nn">dramatiq_abort</span> <span class="kn">import</span> <span class="n">Abortable</span><span class="p">,</span> <span class="n">backends</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dramatiq</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_broker</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dramatiq_abort</span><span class="w"> </span><span class="kn">import</span> <span class="n">Abortable</span><span class="p">,</span> <span class="n">backends</span>
 
 <span class="n">event_backend</span> <span class="o">=</span> <span class="n">backends</span><span class="o">.</span><span class="n">RedisBackend</span><span class="p">()</span>
 <span class="n">abortable</span> <span class="o">=</span> <span class="n">Abortable</span><span class="p">(</span><span class="n">backend</span><span class="o">=</span><span class="n">event_backend</span><span class="p">)</span>
@@ -75,7 +75,7 @@ termination using the message id in two modes:</p>
 <li><p><cite>abort</cite> mode will abort the pending or running task.</p></li>
 </ul>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@dramatiq</span><span class="o">.</span><span class="n">actor</span>
-<span class="k">def</span> <span class="nf">my_long_running_task</span><span class="p">():</span> <span class="o">...</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">my_long_running_task</span><span class="p">():</span> <span class="o">...</span>
 
 <span class="n">message</span> <span class="o">=</span> <span class="n">my_long_running_task</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
 <span class="n">message_id</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">message_id</span>
@@ -94,7 +94,7 @@ Running tasks can check if an abort is requested by calling <a class="reference 
 which returns the number of milliseconds until the task is aborted or <code class="docutils literal notranslate"><span class="pre">None</span></code> if no
 abort is requested.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@dramatiq</span><span class="o">.</span><span class="n">actor</span>
-<span class="k">def</span> <span class="nf">my_long_running_task</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">my_long_running_task</span><span class="p">():</span>
   <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
     <span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span> <span class="c1"># do work</span>
     <span class="k">if</span> <span class="n">abort_requested</span><span class="p">():</span>
@@ -113,7 +113,7 @@ abort is requested.</p>
 skip a task only if the task was aborted up to 90 seconds ago. In case of longer delay
 in the task processing this value can be overridden.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@dramatiq</span><span class="o">.</span><span class="n">actor</span>
-<span class="k">def</span> <span class="nf">count_words</span><span class="p">(</span><span class="n">url</span><span class="p">):</span> <span class="o">...</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">count_words</span><span class="p">(</span><span class="n">url</span><span class="p">):</span> <span class="o">...</span>
 
 <span class="n">message</span> <span class="o">=</span> <span class="n">count_words</span><span class="o">.</span><span class="n">send_with_options</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;https://example.com&quot;</span><span class="p">,),</span> <span class="n">delay</span><span class="o">=</span><span class="mi">60</span><span class="o">*</span><span class="mi">60</span><span class="o">*</span><span class="mi">1000</span><span class="p">)</span>
 <span class="n">message_id</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">message_id</span>
@@ -127,7 +127,7 @@ in the task processing this value can be overridden.</p>
 <p>When a worker is waiting on a subprocess, the <a class="reference internal" href="#dramatiq_abort.Abort" title="dramatiq_abort.Abort"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Abort</span></code></a> exception will only be raised
 AFTER the subprocess has been completed. The following example is one way to deal with this:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@dramatiq</span><span class="o">.</span><span class="n">actor</span>
-<span class="k">def</span> <span class="nf">my_subprocess</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">my_subprocess</span><span class="p">():</span>
   <span class="k">with</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">as</span> <span class="n">process</span><span class="p">:</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">try</span><span class="p">:</span>
@@ -197,7 +197,7 @@ is requested.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="dramatiq_abort.Abortable">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dramatiq_abort.</span></span><span class="sig-name descname"><span class="pre">Abortable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backend</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abortable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abort_ttl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">90000</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dramatiq_abort.Abortable" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dramatiq_abort.</span></span><span class="sig-name descname"><span class="pre">Abortable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">backend</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abortable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abort_ttl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">90000</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dramatiq_abort.Abortable" title="Link to this definition">¶</a></dt>
 <dd><p>Middleware that interrupts actors whose job has been signaled for
 termination.
 Currently, this is only available on CPython.</p>
@@ -223,24 +223,24 @@ option.</p></li>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="dramatiq_abort.Abort">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dramatiq_abort.</span></span><span class="sig-name descname"><span class="pre">Abort</span></span><a class="headerlink" href="#dramatiq_abort.Abort" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dramatiq_abort.</span></span><span class="sig-name descname"><span class="pre">Abort</span></span><a class="headerlink" href="#dramatiq_abort.Abort" title="Link to this definition">¶</a></dt>
 <dd><p>Exception used to interrupt worker threads when their worker
 processes have been signaled to abort.</p>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="dramatiq_abort.Event">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dramatiq_abort.</span></span><span class="sig-name descname"><span class="pre">Event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dramatiq_abort.Event" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dramatiq_abort.</span></span><span class="sig-name descname"><span class="pre">Event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dramatiq_abort.Event" title="Link to this definition">¶</a></dt>
 <dd><p>Events are composed of an identifying key and associated parameters.</p>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="dramatiq_abort.EventBackend">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dramatiq_abort.</span></span><span class="sig-name descname"><span class="pre">EventBackend</span></span><a class="headerlink" href="#dramatiq_abort.EventBackend" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dramatiq_abort.</span></span><span class="sig-name descname"><span class="pre">EventBackend</span></span><a class="headerlink" href="#dramatiq_abort.EventBackend" title="Link to this definition">¶</a></dt>
 <dd><p>ABC for event backends.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="dramatiq_abort.EventBackend.notify">
-<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">notify</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">events</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ttl</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dramatiq_abort.EventBackend.notify" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">notify</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">events</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ttl</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dramatiq_abort.EventBackend.notify" title="Link to this definition">¶</a></dt>
 <dd><p>Signal events.</p>
 <p>Once notified, a call to <a class="reference internal" href="#dramatiq_abort.EventBackend.poll" title="dramatiq_abort.EventBackend.poll"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">poll</span></code></a> or <a class="reference internal" href="#dramatiq_abort.EventBackend.wait_many" title="dramatiq_abort.EventBackend.wait_many"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">wait_many</span></code></a> with this event should
 result in a positive result.</p>
@@ -263,7 +263,7 @@ being garbage collected.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="dramatiq_abort.EventBackend.poll">
-<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">poll</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dramatiq_abort.EventBackend.poll" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">poll</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dramatiq_abort.EventBackend.poll" title="Link to this definition">¶</a></dt>
 <dd><p>Check if an event has been signaled.</p>
 <p>This function should not block and wait for an event to signal.
 Returns the event if it was signaled, <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise.
@@ -281,7 +281,7 @@ subsequent calls might return <code class="docutils literal notranslate"><span c
 
 <dl class="py method">
 <dt class="sig sig-object py" id="dramatiq_abort.EventBackend.wait_many">
-<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">wait_many</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dramatiq_abort.EventBackend.wait_many" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">wait_many</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dramatiq_abort.EventBackend.wait_many" title="Link to this definition">¶</a></dt>
 <dd><p>Wait for either one of the events in <code class="docutils literal notranslate"><span class="pre">keys</span></code> to be signaled or
 <code class="docutils literal notranslate"><span class="pre">timeout</span></code> milliseconds to elapsed.</p>
 <p>Returns the event that signaled or <code class="docutils literal notranslate"><span class="pre">None</span></code> if no event was signaled.
@@ -304,7 +304,7 @@ subsequent calls might wait indefinitely.</p>
 
 <dl class="py class" id="module-dramatiq_abort.backends">
 <dt class="sig sig-object py" id="dramatiq_abort.backends.RedisBackend">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dramatiq_abort.backends.</span></span><span class="sig-name descname"><span class="pre">RedisBackend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'dramatiq:aborts:'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dramatiq_abort.backends.RedisBackend" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dramatiq_abort.backends.</span></span><span class="sig-name descname"><span class="pre">RedisBackend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'dramatiq:aborts:'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dramatiq_abort.backends.RedisBackend" title="Link to this definition">¶</a></dt>
 <dd><p>An event backend for <a class="reference external" href="https://redis.io">Redis</a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -316,7 +316,7 @@ subsequent calls might wait indefinitely.</p>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="dramatiq_abort.backends.RedisBackend.from_url">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_url</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dramatiq_abort.backends.RedisBackend.from_url" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_url</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dramatiq_abort.backends.RedisBackend.from_url" title="Link to this definition">¶</a></dt>
 <dd><p>Initialize the backend using an URL to the Redis server.
 Any extra parameters are passed on to the default constructor.</p>
 <dl class="field-list simple">
@@ -399,7 +399,7 @@ Any extra parameters are passed on to the default constructor.</p>
       &#169;2019, Flare Systems Inc..
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
       &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
       |
